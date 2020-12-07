@@ -33,4 +33,5 @@ type ContentVariable struct {
 	Type                Type              `json:"type"`
 	CharacteristicId    string            `json:"characteristic_id"`
 	SubContentVariables []ContentVariable `json:"sub_content_variables"`
+	UseAsTag            bool              `json:"use_as_tag"`
 }

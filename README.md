@@ -28,7 +28,8 @@ Simply set these environment variables (default values in brackets):
   "name": string,  
   "type": string,  
   "characteristic_id": string,  
-  "sub_content_variables": ContentVariable[]  
+  "sub_content_variables": ContentVariable[],
+  "use_as_tag": bool
 }
 ```
 
