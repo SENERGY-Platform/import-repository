@@ -80,8 +80,9 @@ func ShrinkImportType(importType ImportTypeExtended) ImportType {
 }
 
 type ImportConfig struct {
-	Name         string      `json:"name"`
-	Description  string      `json:"description"`
-	Type         Type        `json:"type"`
-	DefaultValue interface{} `json:"default_value"`
+	Name               string      `json:"name"`
+	Description        string      `json:"description"`
+	Type               Type        `json:"type"`
+	DefaultValue       interface{} `json:"default_value"`
+	DefaultValueString *string     `json:"-"`
 }

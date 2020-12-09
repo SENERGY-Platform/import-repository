@@ -18,6 +18,8 @@ package mongo
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -65,6 +67,13 @@ func (this *Mongo) GetImportType(ctx context.Context, id string) (importType mod
 		return
 	}
 	err = result.Decode(&importType)
+	for idx, config := range importType.Configs {
+		err = configToRead(&config)
+		if err != nil {
+			return importType, true, err
+		}
+		importType.Configs[idx] = config
+	}
 	if err == mongo.ErrNoDocuments {
 		return importType, false, nil
 	}
@@ -97,18 +106,32 @@ func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int6
 		return nil, err
 	}
 	for cursor.Next(context.Background()) {
-		deviceGroup := model.ImportType{}
-		err = cursor.Decode(&deviceGroup)
+		importType := model.ImportType{}
+		err = cursor.Decode(&importType)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, deviceGroup)
+		for idx, config := range importType.Configs {
+			err = configToRead(&config)
+			if err != nil {
+				return result, err
+			}
+			importType.Configs[idx] = config
+		}
+		result = append(result, importType)
 	}
 	err = cursor.Err()
 	return
 }
 
 func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportType) error {
+	for idx, config := range importType.Configs {
+		err := configToWrite(&config)
+		if err != nil {
+			return err
+		}
+		importType.Configs[idx] = config
+	}
 	_, err := this.importTypeCollection().ReplaceOne(ctx, bson.M{idKey: importType.Id}, importType, options.Replace().SetUpsert(true))
 	return err
 }
@@ -116,4 +139,40 @@ func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportTyp
 func (this *Mongo) RemoveImportType(ctx context.Context, id string) error {
 	_, err := this.importTypeCollection().DeleteOne(ctx, bson.M{idKey: id})
 	return err
+}
+
+func configToWrite(config *model.ImportConfig) error {
+	if config == nil {
+		return errors.New("nil config")
+	}
+	if config.Type != model.Structure {
+		return nil
+	}
+	bs, err := json.Marshal(config.DefaultValue)
+	if err != nil {
+		return err
+	}
+	s := string(bs)
+	config.DefaultValueString = &s
+	config.DefaultValue = nil
+	return nil
+}
+
+func configToRead(config *model.ImportConfig) error {
+	if config == nil {
+		return errors.New("nil config")
+	}
+	if config.Type != model.Structure {
+		return nil
+	}
+	if config.DefaultValueString == nil {
+		return errors.New("nil DefaultValueString")
+	}
+	config.DefaultValue = map[string]interface{}{}
+	err := json.Unmarshal([]byte(*config.DefaultValueString), &config.DefaultValue)
+	if err != nil {
+		return err
+	}
+	config.DefaultValueString = nil
+	return nil
 }

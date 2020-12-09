@@ -42,6 +42,17 @@ func TestImportTypesIntegration(t *testing.T) {
 	}
 	it := model.ImportType{
 		Name: name,
+		Configs: []model.ImportConfig{
+			{
+				Name: "struct",
+				Type: model.Structure,
+				DefaultValue: map[string]interface{}{
+					"1234": "5678",
+					"abc":  123,
+					"def":  false,
+				},
+			},
+		},
 	}
 	it, err = createImportType(conf, it)
 	if err != nil {

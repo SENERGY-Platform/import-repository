@@ -10,7 +10,7 @@ Simply set these environment variables (default values in brackets):
 *    FORCE_AUTH: whether to enforce authentication (true)
 *    FORCE_USER: whether to enforce a user id in the JWT (true)
 *    IMPORT_TYPE_TOPIC: kafka Topic to publish import types on (import-types)
-*    PERMISSIONS:URL: URL of the [permission-search](https://github.com/SENERGY-Platform/permission-search) (http://permissionsearch:8080)
+*    PERMISSIONS_URL: URL of the [permission-search](https://github.com/SENERGY-Platform/permission-search) (http://permissionsearch:8080)
 *    MONGO_URL: URL of the mongo db (mongodb://localhost:27017)
 *    MONGO_TABLE: mongo db table to use (importrepository)
 *    MONGO_IMPORT_TYPE_COLLECTION: mongo collection to use for import types (importtype)

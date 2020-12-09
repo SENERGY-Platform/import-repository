@@ -108,7 +108,7 @@ func validateConfig(conf model.ImportConfig) (valid bool) {
 			_, valid = conf.DefaultValue.([]interface{})
 			break
 		case model.Structure:
-			_, valid = conf.DefaultValue.(interface{})
+			_, valid = conf.DefaultValue.(map[string]interface{})
 			break
 		case model.Boolean:
 			_, valid = conf.DefaultValue.(bool)
