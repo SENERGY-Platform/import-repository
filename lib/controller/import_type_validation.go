@@ -26,9 +26,16 @@ import (
 )
 
 func (this *Controller) doElementsExist(jwt jwt_http_router.Jwt, kind string, ids []string) (allExist bool, err error) {
+	uniqueIds := []string{}
+	for _, id := range ids {
+		if !contains(uniqueIds, id) {
+			uniqueIds = append(uniqueIds, id)
+		}
+	}
+
 	var result []interface{}
-	err = this.security.GetAsUser(jwt, "/v2/"+kind+"?ids="+strings.Join(ids, ","), &result)
-	return len(result) == len(ids), err
+	err = this.security.GetAsUser(jwt, "/v2/"+kind+"?ids="+strings.Join(uniqueIds, ","), &result)
+	return len(result) == len(uniqueIds), err
 }
 
 func (this *Controller) ValidateImportType(jwt jwt_http_router.Jwt, importType model.ImportType) (err error, code int) {
