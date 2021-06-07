@@ -17,23 +17,31 @@
 package consumer
 
 import (
+	"context"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
 	"log"
+	"sync"
 )
 
-func Start(config config.Config, control listener.Controller) (stop func(), err error) {
+func Start(config config.Config, control listener.Controller, ctx context.Context, wg *sync.WaitGroup) (err error) {
 	closer := []func(){}
-	stop = func() {
+	stop := func() {
 		for _, c := range closer {
 			c()
 		}
 	}
+	wg.Add(1)
+	go func() {
+		<-ctx.Done()
+		stop()
+		wg.Done()
+	}()
 	for _, factory := range listener.Factories {
 		topic, handler, err := factory(config, control)
 		if err != nil {
 			log.Println("ERROR: listener.factory", topic, err)
-			return stop, err
+			return err
 		}
 		consumer, err := NewConsumer(config.ZookeeperUrl, config.GroupId, topic, func(topic string, msg []byte) error {
 			if config.Debug {
@@ -45,9 +53,9 @@ func Start(config config.Config, control listener.Controller) (stop func(), err 
 		})
 		if err != nil {
 			stop()
-			return stop, err
+			return err
 		}
 		closer = append(closer, consumer.Stop)
 	}
-	return stop, err
+	return err
 }

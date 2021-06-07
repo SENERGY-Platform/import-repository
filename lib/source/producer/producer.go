@@ -17,6 +17,7 @@
 package producer
 
 import (
+	"context"
 	"errors"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/source/util"
@@ -24,6 +25,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 )
 
 type Producer struct {
@@ -31,7 +33,7 @@ type Producer struct {
 	importTypes *kafka.Writer
 }
 
-func New(conf config.Config) (*Producer, error) {
+func New(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (*Producer, error) {
 	broker, err := util.GetBroker(conf.ZookeeperUrl)
 	if err != nil {
 		return nil, err
@@ -43,6 +45,12 @@ func New(conf config.Config) (*Producer, error) {
 	if err != nil {
 		return nil, err
 	}
+	wg.Add(1)
+	go func() {
+		<-ctx.Done()
+		_ = importTypes.Close()
+		wg.Done()
+	}()
 	return &Producer{config: conf, importTypes: importTypes}, nil
 }
 

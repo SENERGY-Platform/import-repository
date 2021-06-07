@@ -17,10 +17,12 @@
 package database
 
 import (
+	"context"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/database/mongo"
+	"sync"
 )
 
-func New(conf config.Config) (db Database, err error) {
-	return mongo.New(conf)
+func New(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (db Database, err error) {
+	return mongo.New(conf, ctx, wg)
 }

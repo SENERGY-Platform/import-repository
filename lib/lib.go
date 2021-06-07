@@ -17,6 +17,7 @@
 package lib
 
 import (
+	"context"
 	"github.com/SENERGY-Platform/import-repository/lib/api"
 	"github.com/SENERGY-Platform/import-repository/lib/com"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
@@ -25,54 +26,46 @@ import (
 	"github.com/SENERGY-Platform/import-repository/lib/source/consumer"
 	"github.com/SENERGY-Platform/import-repository/lib/source/producer"
 	"log"
+	"sync"
 )
 
-func Start(conf config.Config) (stop func(), err error) {
-	db, err := database.New(conf)
+func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err error) {
+	wg = &sync.WaitGroup{}
+	db, err := database.New(conf, ctx, wg)
 	if err != nil {
 		log.Println("ERROR: unable to connect to database", err)
-		return stop, err
+		return wg, err
 	}
 
 	perm, err := com.NewSecurity(conf)
 	if err != nil {
 		log.Println("ERROR: unable to create permission handler", err)
-		return stop, err
+		return wg, err
 	}
 
-	p, err := producer.New(conf)
+	p, err := producer.New(conf, ctx, wg)
 	if err != nil {
 		log.Println("ERROR: unable to create producer", err)
-		return stop, err
+		return wg, err
 	}
 
 	ctrl, err := controller.New(conf, db, perm, p)
 	if err != nil {
-		db.Disconnect()
 		log.Println("ERROR: unable to start control", err)
-		return stop, err
+		return wg, err
 	}
 
-	sourceStop, err := consumer.Start(conf, ctrl)
+	err = consumer.Start(conf, ctrl, ctx, wg)
 	if err != nil {
-		db.Disconnect()
-		ctrl.Stop()
 		log.Println("ERROR: unable to start source", err)
-		return stop, err
+		return wg, err
 	}
 
 	err = api.Start(conf, ctrl)
 	if err != nil {
-		sourceStop()
-		db.Disconnect()
-		ctrl.Stop()
 		log.Println("ERROR: unable to start api", err)
-		return stop, err
+		return wg, err
 	}
 
-	return func() {
-		sourceStop()
-		db.Disconnect()
-		ctrl.Stop()
-	}, err
+	return wg, err
 }

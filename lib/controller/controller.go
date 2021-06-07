@@ -40,10 +40,6 @@ type Controller struct {
 	config   config.Config
 }
 
-func (this *Controller) Stop() {
-	this.db.Disconnect()
-}
-
 func getTimeoutContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 10*time.Second)
 }

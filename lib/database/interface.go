@@ -22,8 +22,6 @@ import (
 )
 
 type Database interface {
-	Disconnect()
-
 	GetImportType(ctx context.Context, id string) (device model.ImportType, exists bool, err error)
 	SetImportType(ctx context.Context, importType model.ImportType) error
 	RemoveImportType(ctx context.Context, id string) error
