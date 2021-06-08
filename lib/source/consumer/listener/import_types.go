@@ -19,17 +19,20 @@ package listener
 import (
 	"encoding/json"
 	"errors"
-	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/import-repository/lib/source"
+	"github.com/SENERGY-Platform/import-repository/lib/source/consumer"
+	"log"
+	"time"
 )
 
-func init() {
-	Factories = append(Factories, ImportTypesListenerFactory)
+type Controller interface {
+	SetImportTypeInDB(device model.ImportType) error
+	DeleteImportTypeFromDB(id string) error
 }
 
-func ImportTypesListenerFactory(config config.Config, control Controller) (topic string, listener Listener, err error) {
-	return config.ImportTypeTopic, func(msg []byte) (err error) {
+func ImportTypesListenerFactory(control Controller) func(topic string, msg []byte, time time.Time) error {
+	return func(_ string, msg []byte, _ time.Time) (err error) {
 		command := source.ImportTypeCommand{}
 		err = json.Unmarshal(msg, &command)
 		if err != nil {
@@ -42,5 +45,9 @@ func ImportTypesListenerFactory(config config.Config, control Controller) (topic
 			return control.DeleteImportTypeFromDB(command.Id)
 		}
 		return errors.New("unable to handle command: " + string(msg))
-	}, nil
+	}
+}
+
+func HandleError(err error, _ *consumer.Consumer) {
+	log.Println(err)
 }

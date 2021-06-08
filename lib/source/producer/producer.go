@@ -18,30 +18,20 @@ package producer
 
 import (
 	"context"
-	"errors"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/SENERGY-Platform/import-repository/lib/source/util"
-	"github.com/segmentio/kafka-go"
-	"io/ioutil"
-	"log"
-	"os"
+	"github.com/Shopify/sarama"
 	"sync"
 )
 
 type Producer struct {
 	config      config.Config
-	importTypes *kafka.Writer
+	importTypes sarama.SyncProducer
 }
 
 func New(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (*Producer, error) {
-	broker, err := util.GetBroker(conf.ZookeeperUrl)
-	if err != nil {
-		return nil, err
-	}
-	if len(broker) == 0 {
-		return nil, errors.New("missing kafka broker")
-	}
-	importTypes, err := getProducer(broker, conf.ImportTypeTopic, conf.LogLevel == "DEBUG")
+	kafkaConf := sarama.NewConfig()
+	kafkaConf.Producer.Return.Successes = true
+	importTypes, err := sarama.NewSyncProducer([]string{conf.KafkaBootstrap}, kafkaConf)
 	if err != nil {
 		return nil, err
 	}
@@ -52,20 +42,4 @@ func New(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (*Producer
 		wg.Done()
 	}()
 	return &Producer{config: conf, importTypes: importTypes}, nil
-}
-
-func getProducer(broker []string, topic string, debug bool) (writer *kafka.Writer, err error) {
-	var logger *log.Logger
-	if debug {
-		logger = log.New(os.Stdout, "[KAFKA-PRODUCER] ", 0)
-	} else {
-		logger = log.New(ioutil.Discard, "", 0)
-	}
-	writer = kafka.NewWriter(kafka.WriterConfig{
-		Brokers:     broker,
-		Topic:       topic,
-		MaxAttempts: 10,
-		Logger:      logger,
-	})
-	return writer, err
 }

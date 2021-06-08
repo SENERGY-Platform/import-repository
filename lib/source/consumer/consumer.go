@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 InfAI (CC SES)
+ * Copyright 2019 InfAI (CC SES)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,44 +18,103 @@ package consumer
 
 import (
 	"context"
-	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
+	"github.com/Shopify/sarama"
 	"log"
+	"strings"
 	"sync"
+	"time"
 )
 
-func Start(config config.Config, control listener.Controller, ctx context.Context, wg *sync.WaitGroup) (err error) {
-	closer := []func(){}
-	stop := func() {
-		for _, c := range closer {
-			c()
-		}
+// const Latest = sarama.OffsetNewest
+const Earliest = sarama.OffsetOldest
+
+func NewConsumer(ctx context.Context, wg *sync.WaitGroup, kafkaBootstrap string, topics []string, groupId string, offset int64, listener func(topic string, msg []byte, time time.Time) error, errorhandler func(err error, consumer *Consumer), debug bool) (consumer *Consumer, err error) {
+	consumer = &Consumer{ctx: ctx, wg: wg, kafkaBootstrap: kafkaBootstrap, topics: topics, listener: listener, errorhandler: errorhandler, offset: offset, ready: make(chan bool), groupId: groupId, debug: debug}
+	err = consumer.start()
+	return
+}
+
+type Consumer struct {
+	count          int
+	kafkaBootstrap string
+	topics         []string
+	ctx            context.Context
+	wg             *sync.WaitGroup
+	listener       func(topic string, msg []byte, time time.Time) error
+	errorhandler   func(err error, consumer *Consumer)
+	mux            sync.Mutex
+	offset         int64
+	groupId        string
+	ready          chan bool
+	debug          bool
+}
+
+func (this *Consumer) start() error {
+	config := sarama.NewConfig()
+	config.Consumer.Offsets.Initial = this.offset
+
+	client, err := sarama.NewConsumerGroup(strings.Split(this.kafkaBootstrap, ","), this.groupId, config)
+	if err != nil {
+		log.Panicf("Error creating consumer group client: %v", err)
 	}
-	wg.Add(1)
+
 	go func() {
-		<-ctx.Done()
-		stop()
-		wg.Done()
-	}()
-	for _, factory := range listener.Factories {
-		topic, handler, err := factory(config, control)
-		if err != nil {
-			log.Println("ERROR: listener.factory", topic, err)
-			return err
-		}
-		consumer, err := NewConsumer(config.ZookeeperUrl, config.GroupId, topic, func(topic string, msg []byte) error {
-			if config.Debug {
-				log.Println("DEBUG: consume", topic, string(msg))
+		for {
+			select {
+			case <-this.ctx.Done():
+				log.Println("close kafka reader")
+				return
+			default:
+				if err := client.Consume(this.ctx, this.topics, this); err != nil {
+					log.Panicf("Error from consumer: %v", err)
+				}
+				// check if context was cancelled, signaling that the consumer should stop
+				if this.ctx.Err() != nil {
+					return
+				}
+				this.ready = make(chan bool)
 			}
-			return handler(msg)
-		}, func(err error, consumer *Consumer) {
-			log.Fatal(err)
-		})
-		if err != nil {
-			stop()
-			return err
 		}
-		closer = append(closer, consumer.Stop)
-	}
+	}()
+
+	<-this.ready // Await till the consumer has been set up
+	log.Println("Kafka consumer up and running...")
+
 	return err
+}
+
+func (this *Consumer) Setup(sarama.ConsumerGroupSession) error {
+	// Mark the consumer as ready
+	close(this.ready)
+	this.wg.Add(1)
+	return nil
+}
+
+// Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
+func (this *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
+	log.Println("Cleaned up kafka session")
+	this.wg.Done()
+	return nil
+}
+
+// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
+func (this *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
+	for message := range claim.Messages() {
+		select {
+		case <-this.ctx.Done():
+			log.Println("Ignoring queued kafka messages for faster shutdown")
+			return nil
+		default:
+			if this.debug {
+				log.Println(message.Topic, message.Timestamp, string(message.Value))
+			}
+			err := this.listener(message.Topic, message.Value, message.Timestamp)
+			if err != nil {
+				this.errorhandler(err, this)
+			}
+			session.MarkMessage(message, "")
+		}
+	}
+
+	return nil
 }

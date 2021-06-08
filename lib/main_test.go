@@ -24,10 +24,10 @@ import (
 	"bytes"
 	"context"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/Shopify/sarama"
 	jwt_http_router "github.com/SmartEnergyPlatform/jwt-http-router"
 	"github.com/ory/dockertest"
 	"github.com/ory/dockertest/docker"
-	"github.com/segmentio/kafka-go"
 	"github.com/wvanbergen/kazoo-go"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -153,17 +153,17 @@ func NewDockerEnv(startConfig config.Config, ctx context.Context) (config config
 			globalError = err
 			return
 		}
-		config.ZookeeperUrl = zkIp + ":2181"
+		zkUrl := zkIp + ":2181"
 
 		//kafka
-		kafkaUrl, err := Kafka(pool, ctx, config.ZookeeperUrl)
+		config.KafkaBootstrap, err = Kafka(pool, ctx, zkUrl)
 		if err != nil {
 			globalError = err
 			return
 		}
 
 		//permsearch
-		_, permIp, err := PermSearch(pool, ctx, kafkaUrl, elasticIp)
+		_, permIp, err := PermSearch(pool, ctx, config.KafkaBootstrap, elasticIp)
 		if err != nil {
 			globalError = err
 			return
@@ -290,7 +290,7 @@ func Kafka(pool *dockertest.Pool, ctx context.Context, zookeeperUrl string) (kaf
 	}()
 	err = pool.Retry(func() error {
 		log.Println("try kafka connection...")
-		conn, err := kafka.Dial("tcp", hostIp+":"+strconv.Itoa(kafkaport))
+		conn, err := sarama.NewClusterAdmin([]string{hostIp + ":" + strconv.Itoa(kafkaport)}, sarama.NewConfig())
 		if err != nil {
 			log.Println(err)
 			return err

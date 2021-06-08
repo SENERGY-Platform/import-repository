@@ -17,14 +17,12 @@
 package producer
 
 import (
-	"context"
 	"encoding/json"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/import-repository/lib/source"
-	"github.com/segmentio/kafka-go"
+	"github.com/Shopify/sarama"
 	"log"
 	"runtime/debug"
-	"time"
 )
 
 func (this *Producer) PublishImportType(importType model.ImportType, userId string) error {
@@ -46,14 +44,7 @@ func (this *Producer) PublishImportTypeCommand(cmd source.ImportTypeCommand) err
 		debug.PrintStack()
 		return err
 	}
-	err = this.importTypes.WriteMessages(
-		context.Background(),
-		kafka.Message{
-			Key:   []byte(cmd.Id),
-			Value: message,
-			Time:  time.Now(),
-		},
-	)
+	_, _, err = this.importTypes.SendMessage(&sarama.ProducerMessage{Topic: this.config.ImportTypeTopic, Value: sarama.StringEncoder(message), Key: sarama.StringEncoder(cmd.Id)})
 	if err != nil {
 		debug.PrintStack()
 	}

@@ -33,7 +33,7 @@ type Config struct {
 	ForceUser                 bool   `json:"force_user"`
 	LogLevel                  string `json:"log_level"` //DEBUG | CALL | NONE
 	ServerPort                string `json:"server_port"`
-	ZookeeperUrl              string `json:"zookeeper_url"`
+	KafkaBootstrap            string `json:"kafka_bootstrap"`
 	GroupId                   string `json:"group_id"`
 	ImportTypeTopic           string `json:"import_type_topic"`
 	PermissionsUrl            string `json:"permissions_url"`

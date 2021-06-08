@@ -24,6 +24,7 @@ import (
 	"github.com/SENERGY-Platform/import-repository/lib/controller"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
 	"github.com/SENERGY-Platform/import-repository/lib/source/consumer"
+	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
 	"github.com/SENERGY-Platform/import-repository/lib/source/producer"
 	"log"
 	"sync"
@@ -55,7 +56,8 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 		return wg, err
 	}
 
-	err = consumer.Start(conf, ctrl, ctx, wg)
+	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.ImportTypeTopic}, conf.GroupId, consumer.Earliest,
+		listener.ImportTypesListenerFactory(ctrl), listener.HandleError, conf.Debug)
 	if err != nil {
 		log.Println("ERROR: unable to start source", err)
 		return wg, err

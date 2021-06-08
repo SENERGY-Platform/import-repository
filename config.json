@@ -9,7 +9,7 @@
     "mongo_table": "importrepository",
     "mongo_import_type_collection": "importtype",
     "mongo_repl_set": true,
-    "zookeeper_url": "localhost:2181",
+    "kafka_bootstrap": "localhost:9092",
     "group_id": "import-repository",
     "validate": false,
     "debug": true
