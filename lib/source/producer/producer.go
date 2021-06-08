@@ -24,22 +24,34 @@ import (
 )
 
 type Producer struct {
-	config      config.Config
-	importTypes sarama.SyncProducer
+	config       config.Config
+	syncProducer sarama.SyncProducer
 }
 
 func New(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (*Producer, error) {
-	kafkaConf := sarama.NewConfig()
-	kafkaConf.Producer.Return.Successes = true
-	importTypes, err := sarama.NewSyncProducer([]string{conf.KafkaBootstrap}, kafkaConf)
-	if err != nil {
-		return nil, err
-	}
+	p := &Producer{config: conf}
+	var err error
+	p.syncProducer, err = p.ensureConnection()
 	wg.Add(1)
 	go func() {
 		<-ctx.Done()
-		_ = importTypes.Close()
+		if p.syncProducer != nil {
+			_ = p.syncProducer.Close()
+		}
 		wg.Done()
 	}()
-	return &Producer{config: conf, importTypes: importTypes}, nil
+	return p, err
+}
+
+func (producer *Producer) ensureConnection() (syncProducer sarama.SyncProducer, err error) {
+	if producer.syncProducer != nil {
+		return producer.syncProducer, nil
+	}
+	kafkaConf := sarama.NewConfig()
+	kafkaConf.Producer.Return.Successes = true
+	syncP, err := sarama.NewSyncProducer([]string{producer.config.KafkaBootstrap}, kafkaConf)
+	if err != nil {
+		producer.syncProducer = syncP
+	}
+	return syncP, err
 }

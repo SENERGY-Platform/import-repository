@@ -36,6 +36,13 @@ func (this *Producer) PublishImportTypeDelete(id string, userId string) error {
 }
 
 func (this *Producer) PublishImportTypeCommand(cmd source.ImportTypeCommand) error {
+	if this.syncProducer == nil {
+		var err error
+		this.syncProducer, err = this.ensureConnection()
+		if err != nil {
+			return err
+		}
+	}
 	if this.config.LogLevel == "DEBUG" {
 		log.Println("DEBUG: produce device", cmd)
 	}
@@ -44,7 +51,7 @@ func (this *Producer) PublishImportTypeCommand(cmd source.ImportTypeCommand) err
 		debug.PrintStack()
 		return err
 	}
-	_, _, err = this.importTypes.SendMessage(&sarama.ProducerMessage{Topic: this.config.ImportTypeTopic, Value: sarama.StringEncoder(message), Key: sarama.StringEncoder(cmd.Id)})
+	_, _, err = this.syncProducer.SendMessage(&sarama.ProducerMessage{Topic: this.config.ImportTypeTopic, Value: sarama.StringEncoder(message), Key: sarama.StringEncoder(cmd.Id)})
 	if err != nil {
 		debug.PrintStack()
 	}

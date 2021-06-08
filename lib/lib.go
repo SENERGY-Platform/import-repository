@@ -46,8 +46,7 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 
 	p, err := producer.New(conf, ctx, wg)
 	if err != nil {
-		log.Println("ERROR: unable to create producer", err)
-		return wg, err
+		log.Println("WARNING: producer unable to connect to kafka, retrying when needed...", err)
 	}
 
 	ctrl, err := controller.New(conf, db, perm, p)
@@ -59,8 +58,7 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.ImportTypeTopic}, conf.GroupId, consumer.Earliest,
 		listener.ImportTypesListenerFactory(ctrl), listener.HandleError, conf.Debug)
 	if err != nil {
-		log.Println("ERROR: unable to start source", err)
-		return wg, err
+		log.Println("WARNING: unable to start source, retrying periodically...", err)
 	}
 
 	err = api.Start(conf, ctrl)

@@ -31,6 +31,19 @@ const Earliest = sarama.OffsetOldest
 func NewConsumer(ctx context.Context, wg *sync.WaitGroup, kafkaBootstrap string, topics []string, groupId string, offset int64, listener func(topic string, msg []byte, time time.Time) error, errorhandler func(err error, consumer *Consumer), debug bool) (consumer *Consumer, err error) {
 	consumer = &Consumer{ctx: ctx, wg: wg, kafkaBootstrap: kafkaBootstrap, topics: topics, listener: listener, errorhandler: errorhandler, offset: offset, ready: make(chan bool), groupId: groupId, debug: debug}
 	err = consumer.start()
+	if err != nil {
+		go func(err2 error) {
+			for err2 != nil {
+				time.Sleep(10 * time.Second)
+				err2 = consumer.start()
+				if err2 != nil {
+					log.Println("WARN: Consumer still not ready:", err2)
+				} else {
+					log.Println("Consumer initiated successfully")
+				}
+			}
+		}(err)
+	}
 	return
 }
 
@@ -55,7 +68,7 @@ func (this *Consumer) start() error {
 
 	client, err := sarama.NewConsumerGroup(strings.Split(this.kafkaBootstrap, ","), this.groupId, config)
 	if err != nil {
-		log.Panicf("Error creating consumer group client: %v", err)
+		return err
 	}
 
 	go func() {
