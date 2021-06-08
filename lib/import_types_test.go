@@ -18,6 +18,7 @@ package lib
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
@@ -33,13 +34,20 @@ import (
 const name = "import-type-name"
 
 func TestImportTypesIntegration(t *testing.T) {
-	closer, conf, err := createTestEnv()
+	ctx, cancel := context.WithCancel(context.Background())
+	wg, conf, err := createTestEnv(ctx)
+	defer func() {
+		cancel()
+		if wg != nil {
+			wg.Wait()
+		}
+	}()
+
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
-	if true {
-		defer closer()
-	}
+
 	it := model.ImportType{
 		Name: name,
 		Configs: []model.ImportConfig{
