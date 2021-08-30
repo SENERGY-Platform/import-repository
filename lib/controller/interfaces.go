@@ -30,4 +30,5 @@ type Security interface {
 type Producer interface {
 	PublishImportTypeDelete(id string, owner string) error
 	PublishImportType(hub model.ImportType, owner string) (err error)
+	PublishDeleteUserRights(resource string, id string, userId string) error
 }

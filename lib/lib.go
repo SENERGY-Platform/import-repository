@@ -61,6 +61,12 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 		log.Println("WARNING: unable to start source, retrying periodically...", err)
 	}
 
+	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.UsersTopic}, conf.GroupId, consumer.Earliest,
+		listener.UsersListenerFactory(ctrl), listener.HandleError, conf.Debug)
+	if err != nil {
+		log.Println("WARNING: unable to start source, retrying periodically...", err)
+	}
+
 	err = api.Start(conf, ctrl)
 	if err != nil {
 		log.Println("ERROR: unable to start api", err)

@@ -43,6 +43,8 @@ type Config struct {
 	MongoImportTypeCollection string `json:"mongo_import_type_collection"`
 	Debug                     bool   `json:"debug"`
 	Validate                  bool   `json:"validate"`
+	UsersTopic                string `json:"users_topic"`
+	PermissionsTopic          string `json:"permissions_topic"`
 }
 
 //loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)

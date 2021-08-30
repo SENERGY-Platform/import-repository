@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"github.com/SENERGY-Platform/import-repository/lib/com"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
 	"time"
@@ -29,6 +30,7 @@ func New(config config.Config, db database.Database, security Security, producer
 		producer: producer,
 		security: security,
 		config:   config,
+		com:      com.New(config),
 	}
 	return
 }
@@ -37,6 +39,7 @@ type Controller struct {
 	db       database.Database
 	security Security
 	producer Producer
+	com      *com.Com
 	config   config.Config
 }
 

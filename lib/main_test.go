@@ -231,7 +231,12 @@ func Elasticsearch(pool *dockertest.Pool, ctx context.Context) (hostPort string,
 
 func MongoTestServer(pool *dockertest.Pool, ctx context.Context) (hostPort string, ipAddress string, err error) {
 	log.Println("start mongodb")
-	repo, err := pool.Run("mongo", "4.1.11", []string{})
+	repo, err := pool.RunWithOptions(&dockertest.RunOptions{
+		Repository: "mongo",
+		Tag:        "4.1.11",
+	}, func(config *docker.HostConfig) {
+		config.Tmpfs = map[string]string{"/data/db": "rw"}
+	})
 	if err != nil {
 		return "", "", err
 	}

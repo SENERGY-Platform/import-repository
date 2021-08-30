@@ -29,6 +29,7 @@ import (
 type Controller interface {
 	SetImportTypeInDB(device model.ImportType) error
 	DeleteImportTypeFromDB(id string) error
+	DeleteUser(id string) error
 }
 
 func ImportTypesListenerFactory(control Controller) func(topic string, msg []byte, time time.Time) error {
