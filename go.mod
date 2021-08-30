@@ -7,7 +7,6 @@ require (
 	github.com/Microsoft/go-winio v0.4.14 // indirect
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/Shopify/sarama v1.27.2
-	github.com/SmartEnergyPlatform/jwt-http-router v0.0.0-20190318131115-1c2a98f99363
 	github.com/cenkalti/backoff v2.1.1+incompatible // indirect
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
@@ -16,6 +15,7 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gotestyourself/gotestyourself v1.4.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2
+	github.com/julienschmidt/httprouter v1.3.0
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/opencontainers/image-spec v1.0.1 // indirect
@@ -32,7 +32,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dgrijalva/jwt-go v3.1.0+incompatible // indirect
 	github.com/eapache/go-resiliency v1.2.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20180814174437-776d5712da21 // indirect
 	github.com/eapache/queue v1.1.0 // indirect

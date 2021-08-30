@@ -29,7 +29,7 @@ func GetAuthToken(req *http.Request) string {
 }
 
 func GetParsedToken(req *http.Request) (token Token, err error) {
-	return parse(GetAuthToken(req))
+	return ParseAuthToken(GetAuthToken(req))
 }
 
 type Token struct {
@@ -57,7 +57,7 @@ func (this *Token) Valid() error {
 	return nil
 }
 
-func parse(token string) (claims Token, err error) {
+func ParseAuthToken(token string) (claims Token, err error) {
 	orig := token
 	if strings.HasPrefix(token, "Bearer ") {
 		token = token[7:]

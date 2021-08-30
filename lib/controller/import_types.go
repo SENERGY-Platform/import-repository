@@ -18,15 +18,15 @@ package controller
 
 import (
 	"errors"
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	jwt_http_router "github.com/SmartEnergyPlatform/jwt-http-router"
 	"github.com/hashicorp/go-uuid"
 	"net/http"
 )
 
 const idPrefix = "urn:infai:ses:import-type:"
 
-func (this *Controller) CreateImportType(importType model.ImportType, jwt jwt_http_router.Jwt) (result model.ImportType, err error, code int) {
+func (this *Controller) CreateImportType(importType model.ImportType, jwt auth.Token) (result model.ImportType, err error, code int) {
 	id, err := uuid.GenerateUUID()
 	if err != nil {
 		return result, err, http.StatusInternalServerError
@@ -38,7 +38,7 @@ func (this *Controller) CreateImportType(importType model.ImportType, jwt jwt_ht
 	if importType.Owner != "" {
 		return result, errors.New("explicit setting of owner not allowed"), http.StatusBadRequest
 	}
-	importType.Owner = jwt.UserId
+	importType.Owner = jwt.GetUserId()
 	if this.config.Validate {
 		err, code = this.ValidateImportType(jwt, importType)
 		if err != nil {
@@ -53,7 +53,7 @@ func (this *Controller) CreateImportType(importType model.ImportType, jwt jwt_ht
 	return importType, nil, http.StatusCreated
 }
 
-func (this *Controller) ReadImportType(id string, jwt jwt_http_router.Jwt) (result model.ImportType, err error, errCode int) {
+func (this *Controller) ReadImportType(id string, jwt auth.Token) (result model.ImportType, err error, errCode int) {
 	ctx, _ := getTimeoutContext()
 	result, exists, err := this.db.GetImportType(ctx, id)
 	if err != nil {
@@ -71,7 +71,7 @@ func (this *Controller) ReadImportType(id string, jwt jwt_http_router.Jwt) (resu
 	return result, nil, http.StatusOK
 }
 
-func (this *Controller) SetImportType(importType model.ImportType, jwt jwt_http_router.Jwt) (err error, errCode int) {
+func (this *Controller) SetImportType(importType model.ImportType, jwt auth.Token) (err error, errCode int) {
 	ctx, _ := getTimeoutContext()
 	existing, exists, err := this.db.GetImportType(ctx, importType.Id)
 	if err != nil {
@@ -101,7 +101,7 @@ func (this *Controller) SetImportType(importType model.ImportType, jwt jwt_http_
 	return nil, http.StatusOK
 }
 
-func (this *Controller) DeleteImportType(id string, jwt jwt_http_router.Jwt) (err error, errCode int) {
+func (this *Controller) DeleteImportType(id string, jwt auth.Token) (err error, errCode int) {
 	ctx, _ := getTimeoutContext()
 	existing, exists, err := this.db.GetImportType(ctx, id)
 	if err != nil {
@@ -131,7 +131,7 @@ func (this *Controller) SetImportTypeInDB(importType model.ImportType) (err erro
 	return this.db.SetImportType(ctx, importType)
 }
 
-func (this *Controller) CheckAccessToImportType(jwt jwt_http_router.Jwt, id string, action model.AuthAction) (err error, errCode int) {
+func (this *Controller) CheckAccessToImportType(jwt auth.Token, id string, action model.AuthAction) (err error, errCode int) {
 	ok, err := this.security.CheckBool(jwt, this.config.ImportTypeTopic, id, action)
 	if err != nil {
 		return err, http.StatusInternalServerError

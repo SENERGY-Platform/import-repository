@@ -18,9 +18,10 @@ package api
 
 import (
 	"encoding/json"
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	jwt_http_router "github.com/SmartEnergyPlatform/jwt-http-router"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 )
@@ -29,12 +30,17 @@ func init() {
 	endpoints = append(endpoints, ImportTypesEndpoints)
 }
 
-func ImportTypesEndpoints(config config.Config, control Controller, router *jwt_http_router.Router) {
+func ImportTypesEndpoints(config config.Config, control Controller, router *httprouter.Router) {
 	resource := "/import-types"
 
-	router.GET(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params jwt_http_router.Params, jwt jwt_http_router.Jwt) {
+	router.GET(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		id := params.ByName("id")
-		result, err, errCode := control.ReadImportType(id, jwt)
+		token, err := auth.GetParsedToken(request)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		result, err, errCode := control.ReadImportType(id, token)
 		if err != nil {
 			http.Error(writer, err.Error(), errCode)
 			return
@@ -47,9 +53,14 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *jwt_
 		return
 	})
 
-	router.DELETE(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params jwt_http_router.Params, jwt jwt_http_router.Jwt) {
+	router.DELETE(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		id := params.ByName("id")
-		err, errCode := control.DeleteImportType(id, jwt)
+		token, err := auth.GetParsedToken(request)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err, errCode := control.DeleteImportType(id, token)
 		if err != nil {
 			http.Error(writer, err.Error(), errCode)
 			return
@@ -58,10 +69,15 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *jwt_
 		return
 	})
 
-	router.PUT(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params jwt_http_router.Params, jwt jwt_http_router.Jwt) {
+	router.PUT(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		id := params.ByName("id")
+		token, err := auth.GetParsedToken(request)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
 		importType := model.ImportType{}
-		err := json.NewDecoder(request.Body).Decode(&importType)
+		err = json.NewDecoder(request.Body).Decode(&importType)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
@@ -71,7 +87,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *jwt_
 			http.Error(writer, "IDs don't match", http.StatusBadRequest)
 			return
 		}
-		err, code := control.SetImportType(importType, jwt)
+		err, code := control.SetImportType(importType, token)
 		if err != nil {
 			http.Error(writer, err.Error(), code)
 			return
@@ -79,14 +95,19 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *jwt_
 		writer.WriteHeader(http.StatusOK)
 	})
 
-	router.POST(resource, func(writer http.ResponseWriter, request *http.Request, params jwt_http_router.Params, jwt jwt_http_router.Jwt) {
+	router.POST(resource, func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		importType := model.ImportType{}
-		err := json.NewDecoder(request.Body).Decode(&importType)
+		token, err := auth.GetParsedToken(request)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		result, err, code := control.CreateImportType(importType, jwt)
+		err = json.NewDecoder(request.Body).Decode(&importType)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		result, err, code := control.CreateImportType(importType, token)
 		if err != nil {
 			http.Error(writer, err.Error(), code)
 			return

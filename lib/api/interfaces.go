@@ -17,14 +17,14 @@
 package api
 
 import (
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/SmartEnergyPlatform/jwt-http-router"
 )
 
 type Controller interface {
-	ReadImportType(id string, jwt jwt_http_router.Jwt) (result model.ImportType, err error, errCode int)
-	CheckAccessToImportType(jwt jwt_http_router.Jwt, id string, action model.AuthAction) (err error, code int)
-	CreateImportType(importType model.ImportType, jwt jwt_http_router.Jwt) (result model.ImportType, err error, code int)
-	SetImportType(importType model.ImportType, jwt jwt_http_router.Jwt) (err error, code int)
-	DeleteImportType(id string, jwt jwt_http_router.Jwt) (err error, errCode int)
+	ReadImportType(id string, jwt auth.Token) (result model.ImportType, err error, errCode int)
+	CheckAccessToImportType(jwt auth.Token, id string, action model.AuthAction) (err error, code int)
+	CreateImportType(importType model.ImportType, jwt auth.Token) (result model.ImportType, err error, code int)
+	SetImportType(importType model.ImportType, jwt auth.Token) (err error, code int)
+	DeleteImportType(id string, jwt auth.Token) (err error, errCode int)
 }

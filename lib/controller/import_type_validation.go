@@ -18,14 +18,14 @@ package controller
 
 import (
 	"errors"
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	jwt_http_router "github.com/SmartEnergyPlatform/jwt-http-router"
 	"math"
 	"net/http"
 	"strings"
 )
 
-func (this *Controller) doElementsExist(jwt jwt_http_router.Jwt, kind string, ids []string) (allExist bool, err error) {
+func (this *Controller) doElementsExist(jwt auth.Token, kind string, ids []string) (allExist bool, err error) {
 	uniqueIds := []string{}
 	for _, id := range ids {
 		if !contains(uniqueIds, id) {
@@ -38,7 +38,7 @@ func (this *Controller) doElementsExist(jwt jwt_http_router.Jwt, kind string, id
 	return len(result) == len(uniqueIds), err
 }
 
-func (this *Controller) ValidateImportType(jwt jwt_http_router.Jwt, importType model.ImportType) (err error, code int) {
+func (this *Controller) ValidateImportType(jwt auth.Token, importType model.ImportType) (err error, code int) {
 	if len(importType.Name) == 0 {
 		return errors.New("name might not be empty"), http.StatusBadRequest
 	}
@@ -125,7 +125,7 @@ func validateConfig(conf model.ImportConfig) (valid bool) {
 	return valid
 }
 
-func (this *Controller) validateContentVariable(jwt jwt_http_router.Jwt, variable model.ContentVariable) (valid bool, err error) {
+func (this *Controller) validateContentVariable(jwt auth.Token, variable model.ContentVariable) (valid bool, err error) {
 	valid, characteristicIds := this.validateContentVariableStep(jwt, variable)
 	if !valid {
 		return false, nil
@@ -136,7 +136,7 @@ func (this *Controller) validateContentVariable(jwt jwt_http_router.Jwt, variabl
 	return valid, err
 }
 
-func (this *Controller) validateContentVariableStep(jwt jwt_http_router.Jwt, variable model.ContentVariable) (valid bool, characteristicIds []string) {
+func (this *Controller) validateContentVariableStep(jwt auth.Token, variable model.ContentVariable) (valid bool, characteristicIds []string) {
 	if len(variable.Name) == 0 || len(variable.Type) == 0 {
 		return false, characteristicIds
 	}

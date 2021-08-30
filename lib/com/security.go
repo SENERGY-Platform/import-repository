@@ -20,13 +20,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"net/http"
 	"net/url"
 	"runtime/debug"
-
-	"github.com/SmartEnergyPlatform/jwt-http-router"
 )
 
 func NewSecurity(config config.Config) (*Security, error) {
@@ -41,7 +40,7 @@ type IdWrapper struct {
 	Id string `json:"id"`
 }
 
-func IsAdmin(jwt jwt_http_router.Jwt) bool {
+func IsAdmin(jwt auth.Token) bool {
 	return contains(jwt.RealmAccess.Roles, "admin")
 }
 
@@ -54,13 +53,13 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func (this *Security) GetAsUser(jwt jwt_http_router.Jwt, url string, result *[]interface{}) (err error) {
+func (this *Security) GetAsUser(jwt auth.Token, url string, result *[]interface{}) (err error) {
 	req, err := http.NewRequest("GET", this.config.PermissionsUrl+url, nil)
 	if err != nil {
 		debug.PrintStack()
 		return err
 	}
-	req.Header.Set("Authorization", string(jwt.Impersonate))
+	req.Header.Set("Authorization", jwt.Token)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		debug.PrintStack()
@@ -80,7 +79,7 @@ func (this *Security) GetAsUser(jwt jwt_http_router.Jwt, url string, result *[]i
 	return nil
 }
 
-func (this *Security) CheckBool(jwt jwt_http_router.Jwt, kind string, id string, action model.AuthAction) (allowed bool, err error) {
+func (this *Security) CheckBool(jwt auth.Token, kind string, id string, action model.AuthAction) (allowed bool, err error) {
 	if IsAdmin(jwt) {
 		return true, nil
 	}
@@ -89,7 +88,7 @@ func (this *Security) CheckBool(jwt jwt_http_router.Jwt, kind string, id string,
 		debug.PrintStack()
 		return false, err
 	}
-	req.Header.Set("Authorization", string(jwt.Impersonate))
+	req.Header.Set("Authorization", jwt.Token)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		debug.PrintStack()
@@ -109,7 +108,7 @@ func (this *Security) CheckBool(jwt jwt_http_router.Jwt, kind string, id string,
 	return allowed, nil
 }
 
-func (this *Security) CheckMultiple(jwt jwt_http_router.Jwt, kind string, ids []string, action model.AuthAction) (result map[string]bool, err error) {
+func (this *Security) CheckMultiple(jwt auth.Token, kind string, ids []string, action model.AuthAction) (result map[string]bool, err error) {
 	body := new(bytes.Buffer)
 	err = json.NewEncoder(body).Encode(map[string]interface{}{
 		"resource": kind,
@@ -127,7 +126,7 @@ func (this *Security) CheckMultiple(jwt jwt_http_router.Jwt, kind string, ids []
 		debug.PrintStack()
 		return result, err
 	}
-	req.Header.Set("Authorization", string(jwt.Impersonate))
+	req.Header.Set("Authorization", jwt.Token)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		debug.PrintStack()

@@ -136,9 +136,22 @@ func TestImportTypesIntegration(t *testing.T) {
 	})
 }
 
-func createImportType(conf config.Config, it model.ImportType) (resp model.ImportType, err error) {
+func createImportType(conf config.Config, it model.ImportType) (out model.ImportType, err error) {
 	endpoint := "http://localhost:" + conf.ServerPort + "/import-types"
-	err = userjwt.PostJSON(endpoint, it, &resp)
+	b := new(bytes.Buffer)
+	err = json.NewEncoder(b).Encode(it)
+	if err != nil {
+		return out, err
+	}
+	resp, err := jwtpost(userjwt, endpoint, "application/json", b)
+	if err != nil {
+		return out, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 300 {
+		return out, errors.New(resp.Status)
+	}
+	err = json.NewDecoder(resp.Body).Decode(&out)
 	return
 }
 
@@ -161,7 +174,7 @@ func updateImportType(conf config.Config, it model.ImportType, id string) (err e
 
 func testImportTypeReadNotFound(t *testing.T, conf config.Config, id string) {
 	endpoint := "http://localhost:" + conf.ServerPort + "/import-types/" + url.PathEscape(id)
-	resp, err := userjwt.Get(endpoint)
+	resp, err := jwtget(userjwt, endpoint)
 	if err != nil {
 		t.Error(err)
 		return
@@ -176,7 +189,7 @@ func testImportTypeReadNotFound(t *testing.T, conf config.Config, id string) {
 func testImportTypeRead(t *testing.T, conf config.Config, expectedImportTypes ...model.ImportType) {
 	for _, expected := range expectedImportTypes {
 		endpoint := "http://localhost:" + conf.ServerPort + "/import-types/" + url.PathEscape(expected.Id)
-		resp, err := userjwt.Get(endpoint)
+		resp, err := jwtget(userjwt, endpoint)
 		if err != nil {
 			t.Error(err)
 			return
@@ -201,7 +214,7 @@ func testImportTypeRead(t *testing.T, conf config.Config, expectedImportTypes ..
 }
 
 func testImportTypeReadNotAllowed(t *testing.T, conf config.Config, id string) {
-	resp, err := userjwt2.Get("http://localhost:" + conf.ServerPort + "/import-types/" + url.PathEscape(id))
+	resp, err := jwtget(userjwt2, "http://localhost:"+conf.ServerPort+"/import-types/"+url.PathEscape(id))
 	if err != nil {
 		t.Error(err)
 		return

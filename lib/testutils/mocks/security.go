@@ -17,8 +17,10 @@
 package mocks
 
 import (
+	"errors"
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	jwt_http_router "github.com/SmartEnergyPlatform/jwt-http-router"
+	"runtime/debug"
 )
 
 type Security struct {
@@ -29,11 +31,11 @@ func NewSecurity() *Security {
 	return &Security{access: map[string]bool{}}
 }
 
-func (this *Security) CheckBool(jwt jwt_http_router.Jwt, kind string, id string, action model.AuthAction) (allowed bool, err error) {
+func (this *Security) CheckBool(jwt auth.Token, kind string, id string, action model.AuthAction) (allowed bool, err error) {
 	return this.access[this.getKey(kind, id)], nil
 }
 
-func (this *Security) CheckMultiple(jwt jwt_http_router.Jwt, kind string, ids []string, action model.AuthAction) (map[string]bool, error) {
+func (this *Security) CheckMultiple(jwt auth.Token, kind string, ids []string, action model.AuthAction) (map[string]bool, error) {
 	result := map[string]bool{}
 	for _, id := range ids {
 		result[id], _ = this.CheckBool(jwt, kind, id, action)
@@ -47,4 +49,9 @@ func (this *Security) getKey(kind string, id string) string {
 
 func (this *Security) Set(kind string, id string, access bool) {
 	this.access[this.getKey(kind, id)] = access
+}
+
+func (this *Security) GetAsUser(jwt auth.Token, url string, result *[]interface{}) (err error) {
+	debug.PrintStack()
+	return errors.New("not implemented")
 }

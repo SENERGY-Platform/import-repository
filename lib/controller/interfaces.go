@@ -17,14 +17,14 @@
 package controller
 
 import (
+	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/SmartEnergyPlatform/jwt-http-router"
 )
 
 type Security interface {
-	CheckBool(jwt jwt_http_router.Jwt, kind string, id string, action model.AuthAction) (allowed bool, err error)
-	CheckMultiple(jwt jwt_http_router.Jwt, kind string, ids []string, action model.AuthAction) (map[string]bool, error)
-	GetAsUser(jwt jwt_http_router.Jwt, url string, result *[]interface{}) (err error)
+	CheckBool(jwt auth.Token, kind string, id string, action model.AuthAction) (allowed bool, err error)
+	CheckMultiple(jwt auth.Token, kind string, ids []string, action model.AuthAction) (map[string]bool, error)
+	GetAsUser(jwt auth.Token, url string, result *[]interface{}) (err error)
 }
 
 type Producer interface {

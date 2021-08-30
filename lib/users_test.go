@@ -83,7 +83,7 @@ func TestUserDelete(t *testing.T) {
 	ids := []string{}
 	t.Run("create import-types", initImportTypes(conf, user1, user2, &ids))
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	t.Run("change permissions", func(t *testing.T) {
 		for i := 0; i < 4; i++ {
@@ -120,7 +120,7 @@ func TestUserDelete(t *testing.T) {
 		}
 	})
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	t.Run("check user1 before delete", checkUserImportTypes(conf, user1, ids[:15]))
 	t.Run("check user2 before delete", checkUserImportTypes(conf, user2, append(append([]string{}, ids[:4]...), ids[10:]...)))
@@ -155,7 +155,7 @@ func TestUserDelete(t *testing.T) {
 		}
 	})
 
-	time.Sleep(20 * time.Second)
+	time.Sleep(30 * time.Second)
 
 	t.Run("check user1 after delete", checkUserImportTypes(conf, user1, []string{}))
 	t.Run("check user2 after delete", checkUserImportTypes(conf, user2, append(append(append([]string{}, ids[:4]...), ids[10:12]...), ids[14:]...)))
@@ -170,7 +170,7 @@ func initImportTypes(config config.Config, user1 auth.Token, user2 auth.Token, c
 	return func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			temp := IdWrapper{}
-			err := user1.PostJSON(
+			err := jwtpostjson(user1,
 				"http://localhost:"+config.ServerPort+"/import-types",
 				model.ImportType{
 					Name: strconv.Itoa(i),
@@ -194,7 +194,7 @@ func initImportTypes(config config.Config, user1 auth.Token, user2 auth.Token, c
 		}
 		for i := 10; i < 20; i++ {
 			temp := IdWrapper{}
-			err := user2.PostJSON(
+			err := jwtpostjson(user2,
 				"http://localhost:"+config.ServerPort+"/import-types",
 				model.ImportType{
 					Name: strconv.Itoa(i),
@@ -284,7 +284,9 @@ func checkUserImportTypes(conf config.Config, token auth.Token, expectedIdsOrig 
 		sort.Strings(expectedIds)
 
 		if !reflect.DeepEqual(actualIds, expectedIds) {
-			t.Error(actualIds, expectedIds)
+			t.Error(actualIds,
+				"\n",
+				expectedIds)
 			return
 		}
 	}
