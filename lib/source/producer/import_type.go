@@ -21,7 +21,6 @@ import (
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/import-repository/lib/source"
 	"github.com/Shopify/sarama"
-	"log"
 	"runtime/debug"
 )
 
@@ -42,9 +41,6 @@ func (this *Producer) PublishImportTypeCommand(cmd source.ImportTypeCommand) err
 		if err != nil {
 			return err
 		}
-	}
-	if this.config.LogLevel == "DEBUG" {
-		log.Println("DEBUG: produce device", cmd)
 	}
 	message, err := json.Marshal(cmd)
 	if err != nil {

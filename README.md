@@ -7,8 +7,6 @@ Repository to store metadata about imports.
 Simply set these environment variables (default values in brackets):
 *    SERVER_PORT: port to listen on (8080)
 *    JWT_PUB_RSA: public RSA Key to validate JWTs. If not set, JWTs will not be validated ("")
-*    FORCE_AUTH: whether to enforce authentication (true)
-*    FORCE_USER: whether to enforce a user id in the JWT (true)
 *    IMPORT_TYPE_TOPIC: kafka Topic to publish import types on (import-types)
 *    PERMISSIONS_URL: URL of the [permission-search](https://github.com/SENERGY-Platform/permission-search) (http://permissionsearch:8080)
 *    MONGO_URL: URL of the mongo db (mongodb://localhost:27017)

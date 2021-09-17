@@ -19,7 +19,6 @@ package producer
 import (
 	"encoding/json"
 	"github.com/Shopify/sarama"
-	"log"
 	"runtime/debug"
 )
 
@@ -48,9 +47,6 @@ func (this *Producer) PublishPermissionCommand(cmd PermCommandMsg) error {
 		if err != nil {
 			return err
 		}
-	}
-	if this.config.LogLevel == "DEBUG" {
-		log.Println("DEBUG: produce device", cmd)
 	}
 	message, err := json.Marshal(cmd)
 	if err != nil {

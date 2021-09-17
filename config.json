@@ -1,8 +1,6 @@
 {
     "server_port": "8080",
     "jwt_pub_rsa": "",
-    "force_auth": true,
-    "force_user": true,
     "import_type_topic": "import-types",
     "users_topic": "user",
     "permissions_topic": "permissions",
