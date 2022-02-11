@@ -23,9 +23,7 @@ type ImportType struct {
 	Image          string          `json:"image"`
 	DefaultRestart bool            `json:"default_restart"`
 	Configs        []ImportConfig  `json:"configs"`
-	AspectIds      []string        `json:"aspect_ids"`
 	Output         ContentVariable `json:"output"`
-	FunctionIds    []string        `json:"function_ids"`
 	Owner          string          `json:"owner"`
 }
 
@@ -38,7 +36,6 @@ type ImportTypeExtended struct {
 	Configs         []ImportConfig  `json:"configs"`
 	AspectIds       []string        `json:"aspect_ids"`
 	Output          ContentVariable `json:"output"`
-	FunctionIds     []string        `json:"function_ids"`
 	AspectFunctions []string        `json:"aspect_functions"`
 	Owner           string          `json:"owner"`
 }
@@ -51,15 +48,13 @@ func ExtendImportType(importType ImportType) ImportTypeExtended {
 		Image:          importType.Image,
 		DefaultRestart: importType.DefaultRestart,
 		Configs:        importType.Configs,
-		AspectIds:      importType.AspectIds,
 		Output:         importType.Output,
-		FunctionIds:    importType.FunctionIds,
 		Owner:          importType.Owner,
 	}
-	for _, aspect := range importType.AspectIds {
-		for _, function := range importType.FunctionIds {
-			ex.AspectFunctions = append(ex.AspectFunctions, aspect+"_"+function)
-		}
+	aspectFunctions := make(map[string]interface{})
+	fillAspectFunctions(aspectFunctions, importType.Output)
+	for k := range aspectFunctions {
+		ex.AspectFunctions = append(ex.AspectFunctions, k)
 	}
 	return ex
 }
@@ -72,10 +67,17 @@ func ShrinkImportType(importType ImportTypeExtended) ImportType {
 		Image:          importType.Image,
 		DefaultRestart: importType.DefaultRestart,
 		Configs:        importType.Configs,
-		AspectIds:      importType.AspectIds,
 		Output:         importType.Output,
-		FunctionIds:    importType.FunctionIds,
 		Owner:          importType.Owner,
+	}
+}
+
+func fillAspectFunctions(m map[string]interface{}, c ContentVariable) {
+	if c.AspectId != "" && c.FunctionId != "" {
+		m[c.AspectId+"_"+c.FunctionId] = nil
+	}
+	for _, sub := range c.SubContentVariables {
+		fillAspectFunctions(m, sub)
 	}
 }
 

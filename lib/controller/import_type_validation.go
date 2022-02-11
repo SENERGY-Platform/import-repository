@@ -47,26 +47,6 @@ func (this *Controller) ValidateImportType(jwt auth.Token, importType model.Impo
 		return errors.New("image might not be empty"), http.StatusBadRequest
 	}
 
-	if len(importType.AspectIds) > 0 {
-		ok, err := this.doElementsExist(jwt, "aspects", importType.AspectIds)
-		if err != nil {
-			return err, http.StatusInternalServerError
-		}
-		if !ok {
-			return errors.New("unknown aspect id"), http.StatusBadRequest
-		}
-	}
-
-	if len(importType.FunctionIds) > 0 {
-		ok, err := this.doElementsExist(jwt, "functions", importType.FunctionIds)
-		if err != nil {
-			return err, http.StatusInternalServerError
-		}
-		if !ok {
-			return errors.New("unknown function id"), http.StatusBadRequest
-		}
-	}
-
 	confNames := []string{}
 	for _, conf := range importType.Configs {
 		if contains(confNames, conf.Name) {
@@ -126,19 +106,34 @@ func validateConfig(conf model.ImportConfig) (valid bool) {
 }
 
 func (this *Controller) validateContentVariable(jwt auth.Token, variable model.ContentVariable) (valid bool, err error) {
-	valid, characteristicIds := this.validateContentVariableStep(jwt, variable)
+	valid, characteristicIds, functionIds, aspectIds := this.validateContentVariableStep(jwt, variable)
 	if !valid {
 		return false, nil
 	}
 	if len(characteristicIds) > 0 {
 		valid, err = this.doElementsExist(jwt, "characteristics", characteristicIds)
+		if !valid || err != nil {
+			return
+		}
+	}
+	if len(functionIds) > 0 {
+		valid, err = this.doElementsExist(jwt, "functions", functionIds)
+		if !valid || err != nil {
+			return
+		}
+	}
+	if len(aspectIds) > 0 {
+		valid, err = this.doElementsExist(jwt, "aspects", aspectIds)
+		if !valid || err != nil {
+			return
+		}
 	}
 	return valid, err
 }
 
-func (this *Controller) validateContentVariableStep(jwt auth.Token, variable model.ContentVariable) (valid bool, characteristicIds []string) {
+func (this *Controller) validateContentVariableStep(jwt auth.Token, variable model.ContentVariable) (valid bool, characteristicIds []string, functionIds []string, aspectIds []string) {
 	if len(variable.Name) == 0 || len(variable.Type) == 0 {
-		return false, characteristicIds
+		return false, characteristicIds, functionIds, aspectIds
 	}
 	if variable.Type != model.String &&
 		variable.Type != model.Integer &&
@@ -146,22 +141,30 @@ func (this *Controller) validateContentVariableStep(jwt auth.Token, variable mod
 		variable.Type != model.List &&
 		variable.Type != model.Structure &&
 		variable.Type != model.Boolean {
-		return false, characteristicIds
+		return false, characteristicIds, functionIds, aspectIds
 	}
 	if variable.Type != model.Structure && variable.Type != model.List && len(variable.SubContentVariables) > 0 {
-		return false, characteristicIds
+		return false, characteristicIds, functionIds, aspectIds
 	}
 	if len(variable.CharacteristicId) > 0 {
 		characteristicIds = append(characteristicIds, variable.CharacteristicId)
 	}
-	for _, subVariable := range variable.SubContentVariables {
-		validInner, subIds := this.validateContentVariableStep(jwt, subVariable)
-		if !validInner {
-			return validInner, characteristicIds
-		}
-		characteristicIds = append(characteristicIds, subIds...)
+	if len(variable.FunctionId) > 0 {
+		characteristicIds = append(functionIds, variable.FunctionId)
 	}
-	return true, characteristicIds
+	if len(variable.AspectId) > 0 {
+		characteristicIds = append(characteristicIds, variable.AspectId)
+	}
+	for _, subVariable := range variable.SubContentVariables {
+		validInner, subCharacteristicIds, subFunctionIds, subAspectIds := this.validateContentVariableStep(jwt, subVariable)
+		if !validInner {
+			return validInner, characteristicIds, functionIds, aspectIds
+		}
+		characteristicIds = append(characteristicIds, subCharacteristicIds...)
+		functionIds = append(characteristicIds, subFunctionIds...)
+		aspectIds = append(characteristicIds, subAspectIds...)
+	}
+	return true, characteristicIds, functionIds, aspectIds
 }
 
 func contains(list []string, item string) bool {
