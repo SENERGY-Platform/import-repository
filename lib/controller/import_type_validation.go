@@ -150,10 +150,10 @@ func (this *Controller) validateContentVariableStep(jwt auth.Token, variable mod
 		characteristicIds = append(characteristicIds, variable.CharacteristicId)
 	}
 	if len(variable.FunctionId) > 0 {
-		characteristicIds = append(functionIds, variable.FunctionId)
+		functionIds = append(functionIds, variable.FunctionId)
 	}
 	if len(variable.AspectId) > 0 {
-		characteristicIds = append(characteristicIds, variable.AspectId)
+		aspectIds = append(aspectIds, variable.AspectId)
 	}
 	for _, subVariable := range variable.SubContentVariables {
 		validInner, subCharacteristicIds, subFunctionIds, subAspectIds := this.validateContentVariableStep(jwt, subVariable)
@@ -161,8 +161,8 @@ func (this *Controller) validateContentVariableStep(jwt auth.Token, variable mod
 			return validInner, characteristicIds, functionIds, aspectIds
 		}
 		characteristicIds = append(characteristicIds, subCharacteristicIds...)
-		functionIds = append(characteristicIds, subFunctionIds...)
-		aspectIds = append(characteristicIds, subAspectIds...)
+		functionIds = append(functionIds, subFunctionIds...)
+		aspectIds = append(aspectIds, subAspectIds...)
 	}
 	return true, characteristicIds, functionIds, aspectIds
 }
