@@ -34,7 +34,6 @@ type ImportTypeExtended struct {
 	Image           string          `json:"image"`
 	DefaultRestart  bool            `json:"default_restart"`
 	Configs         []ImportConfig  `json:"configs"`
-	AspectIds       []string        `json:"aspect_ids"`
 	Output          ContentVariable `json:"output"`
 	AspectFunctions []string        `json:"aspect_functions"`
 	Owner           string          `json:"owner"`
