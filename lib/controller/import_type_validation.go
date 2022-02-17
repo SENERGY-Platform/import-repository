@@ -123,9 +123,16 @@ func (this *Controller) validateContentVariable(jwt auth.Token, variable model.C
 		}
 	}
 	if len(aspectIds) > 0 {
-		valid, err = this.doElementsExist(jwt, "aspects", aspectIds)
-		if !valid || err != nil {
-			return
+		uniqueIds := []string{}
+		for _, id := range aspectIds {
+			if !contains(uniqueIds, id) {
+				uniqueIds = append(uniqueIds, id)
+			}
+		}
+
+		aspectNodes, err := this.com.GetAspectNodes(uniqueIds, jwt)
+		if len(aspectNodes) != len(uniqueIds) || err != nil {
+			return false, err
 		}
 	}
 	return valid, err

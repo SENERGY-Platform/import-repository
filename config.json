@@ -5,6 +5,7 @@
     "users_topic": "user",
     "permissions_topic": "permissions",
     "permissions_url": "http://permissionsearch:8080",
+    "device_repo_url": "http://device-repo:8080",
     "mongo_url": "mongodb://localhost:27017",
     "mongo_table": "importrepository",
     "mongo_import_type_collection": "importtype",
