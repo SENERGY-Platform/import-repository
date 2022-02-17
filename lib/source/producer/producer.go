@@ -48,6 +48,7 @@ func (producer *Producer) ensureConnection() (syncProducer sarama.SyncProducer, 
 		return producer.syncProducer, nil
 	}
 	kafkaConf := sarama.NewConfig()
+	kafkaConf.Producer.Flush.MaxMessages = 1
 	kafkaConf.Producer.Return.Successes = true
 	syncP, err := sarama.NewSyncProducer([]string{producer.config.KafkaBootstrap}, kafkaConf)
 	if err != nil {
