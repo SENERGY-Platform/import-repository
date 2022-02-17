@@ -28,15 +28,17 @@ type ImportType struct {
 }
 
 type ImportTypeExtended struct {
-	Id              string          `json:"id"`
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	Image           string          `json:"image"`
-	DefaultRestart  bool            `json:"default_restart"`
-	Configs         []ImportConfig  `json:"configs"`
-	Output          ContentVariable `json:"output"`
-	AspectFunctions []string        `json:"aspect_functions"`
-	Owner           string          `json:"owner"`
+	Id                 string          `json:"id"`
+	Name               string          `json:"name"`
+	Description        string          `json:"description"`
+	Image              string          `json:"image"`
+	DefaultRestart     bool            `json:"default_restart"`
+	Configs            []ImportConfig  `json:"configs"`
+	ContentAspectIds   []string        `json:"content_aspect_ids"`
+	ContentFunctionIds []string        `json:"content_function_ids"`
+	Output             ContentVariable `json:"output"`
+	AspectFunctions    []string        `json:"aspect_functions"`
+	Owner              string          `json:"owner"`
 }
 
 func ExtendImportType(importType ImportType) ImportTypeExtended {
@@ -51,9 +53,17 @@ func ExtendImportType(importType ImportType) ImportTypeExtended {
 		Owner:          importType.Owner,
 	}
 	aspectFunctions := make(map[string]interface{})
-	fillAspectFunctions(aspectFunctions, importType.Output)
+	aspects := make(map[string]interface{})
+	functions := make(map[string]interface{})
+	fillAspectFunctions(aspectFunctions, aspects, functions, importType.Output)
 	for k := range aspectFunctions {
 		ex.AspectFunctions = append(ex.AspectFunctions, k)
+	}
+	for k := range aspects {
+		ex.ContentAspectIds = append(ex.ContentAspectIds, k)
+	}
+	for k := range functions {
+		ex.ContentFunctionIds = append(ex.ContentFunctionIds, k)
 	}
 	return ex
 }
@@ -71,12 +81,18 @@ func ShrinkImportType(importType ImportTypeExtended) ImportType {
 	}
 }
 
-func fillAspectFunctions(m map[string]interface{}, c ContentVariable) {
+func fillAspectFunctions(aspectFunctions map[string]interface{}, aspects map[string]interface{}, functions map[string]interface{}, c ContentVariable) {
 	if c.AspectId != "" && c.FunctionId != "" {
-		m[c.AspectId+"_"+c.FunctionId] = nil
+		aspectFunctions[c.AspectId+"_"+c.FunctionId] = nil
+	}
+	if c.AspectId != "" {
+		aspects[c.AspectId] = nil
+	}
+	if c.FunctionId != "" {
+		functions[c.FunctionId] = nil
 	}
 	for _, sub := range c.SubContentVariables {
-		fillAspectFunctions(m, sub)
+		fillAspectFunctions(aspectFunctions, aspects, functions, sub)
 	}
 }
 
