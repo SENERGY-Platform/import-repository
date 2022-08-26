@@ -44,6 +44,8 @@ func ImportTypesListenerFactory(control Controller) func(topic string, msg []byt
 			return control.SetImportTypeInDB(model.ShrinkImportType(command.ImportType))
 		case "DELETE":
 			return control.DeleteImportTypeFromDB(command.Id)
+		case "RIGHTS":
+			return nil
 		}
 		return errors.New("unable to handle command: " + string(msg))
 	}
