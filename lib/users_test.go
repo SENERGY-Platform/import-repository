@@ -155,7 +155,7 @@ func TestUserDelete(t *testing.T) {
 		}
 	})
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	t.Run("check user1 after delete", checkUserImportTypes(conf, user1, []string{}))
 	t.Run("check user2 after delete", checkUserImportTypes(conf, user2, append(append(append([]string{}, ids[:4]...), ids[10:12]...), ids[14:]...)))

@@ -53,4 +53,5 @@ func ImportTypesListenerFactory(control Controller) func(topic string, msg []byt
 
 func HandleError(err error, _ *consumer.Consumer) {
 	log.Println(err)
+	panic("Failing hard in order to prevent committing of invalid offsets!")
 }
