@@ -18,8 +18,8 @@ package producer
 
 import (
 	"context"
+	"github.com/IBM/sarama"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/Shopify/sarama"
 	"sync"
 )
 

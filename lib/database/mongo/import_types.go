@@ -24,7 +24,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 	"log"
 	"strings"
 )
@@ -99,7 +98,7 @@ func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int6
 	if len(parts) > 1 && parts[1] == "desc" {
 		direction = int32(-1)
 	}
-	opt.SetSort(bsonx.Doc{{sortby, bsonx.Int32(direction)}})
+	opt.SetSort(bson.D{{sortby, direction}})
 
 	cursor, err := this.importTypeCollection().Find(ctx, bson.M{}, opt)
 	if err != nil {

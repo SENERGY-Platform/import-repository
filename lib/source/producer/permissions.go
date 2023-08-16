@@ -18,7 +18,7 @@ package producer
 
 import (
 	"encoding/json"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"runtime/debug"
 )
 

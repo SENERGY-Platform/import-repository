@@ -18,9 +18,9 @@ package producer
 
 import (
 	"encoding/json"
+	"github.com/IBM/sarama"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/import-repository/lib/source"
-	"github.com/Shopify/sarama"
 	"runtime/debug"
 )
 
