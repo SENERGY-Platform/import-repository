@@ -61,6 +61,7 @@ func TestImportTypesIntegration(t *testing.T) {
 				},
 			},
 		},
+		Cost: 5,
 	}
 	it, err = createImportType(conf, it)
 	if err != nil {

@@ -25,6 +25,7 @@ type ImportType struct {
 	Configs        []ImportConfig  `json:"configs"`
 	Output         ContentVariable `json:"output"`
 	Owner          string          `json:"owner"`
+	Cost           uint64          `json:"cost"`
 }
 
 type ImportTypeExtended struct {
@@ -39,6 +40,7 @@ type ImportTypeExtended struct {
 	Output             ContentVariable `json:"output"`
 	AspectFunctions    []string        `json:"aspect_functions"`
 	Owner              string          `json:"owner"`
+	Cost               uint64          `json:"cost"`
 }
 
 func ExtendImportType(importType ImportType) ImportTypeExtended {
@@ -51,6 +53,7 @@ func ExtendImportType(importType ImportType) ImportTypeExtended {
 		Configs:        importType.Configs,
 		Output:         importType.Output,
 		Owner:          importType.Owner,
+		Cost:           importType.Cost,
 	}
 	aspectFunctions := make(map[string]interface{})
 	aspects := make(map[string]interface{})
@@ -78,6 +81,7 @@ func ShrinkImportType(importType ImportTypeExtended) ImportType {
 		Configs:        importType.Configs,
 		Output:         importType.Output,
 		Owner:          importType.Owner,
+		Cost:           importType.Cost,
 	}
 }
 

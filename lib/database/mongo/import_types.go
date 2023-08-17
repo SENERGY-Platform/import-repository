@@ -63,6 +63,9 @@ func (this *Mongo) GetImportType(ctx context.Context, id string) (importType mod
 	result := this.importTypeCollection().FindOne(ctx, bson.M{idKey: id})
 	err = result.Err()
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return importType, false, nil
+		}
 		return
 	}
 	err = result.Decode(&importType)
@@ -72,9 +75,6 @@ func (this *Mongo) GetImportType(ctx context.Context, id string) (importType mod
 			return importType, true, err
 		}
 		importType.Configs[idx] = config
-	}
-	if err == mongo.ErrNoDocuments {
-		return importType, false, nil
 	}
 	return importType, true, err
 }
