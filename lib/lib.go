@@ -55,6 +55,14 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 		return wg, err
 	}
 
+	if conf.RepublishStartup {
+		err = ctrl.Republish()
+		if err != nil {
+			log.Println("ERROR: unable to republish control", err)
+			return wg, err
+		}
+	}
+
 	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.ImportTypeTopic}, conf.GroupId, consumer.Earliest,
 		listener.ImportTypesListenerFactory(ctrl), listener.HandleError, conf.Debug)
 	if err != nil {

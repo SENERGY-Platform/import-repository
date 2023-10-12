@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 InfAI (CC SES)
+ * Copyright 2023 InfAI (CC SES)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,29 @@
  * limitations under the License.
  */
 
-package database
+package controller
 
-import (
-	"context"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
-)
+func (this *Controller) Republish() error {
+	var limit int64 = 1000
+	var offset int64 = 0
 
-type Database interface {
-	GetImportType(ctx context.Context, id string) (device model.ImportType, exists bool, err error)
-	ListImportTypes(ctx context.Context, limit int64, offset int64, sort string) (result []model.ImportType, err error)
-	SetImportType(ctx context.Context, importType model.ImportType) error
-	RemoveImportType(ctx context.Context, id string) error
+	for {
+		ctx, cancel := getTimeoutContext()
+		defer cancel()
+		importTypes, err := this.db.ListImportTypes(ctx, limit, offset, "id.asc")
+		if err != nil {
+			return err
+		}
+		for _, t := range importTypes {
+			err = this.producer.PublishImportType(t, t.Owner)
+			if err != nil {
+				return err
+			}
+		}
+		if int64(len(importTypes)) < limit {
+			break
+		}
+		offset += int64(len(importTypes))
+	}
+	return nil
 }

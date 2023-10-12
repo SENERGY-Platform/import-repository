@@ -104,7 +104,7 @@ func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int6
 	if err != nil {
 		return nil, err
 	}
-	for cursor.Next(context.Background()) {
+	for cursor.Next(ctx) {
 		importType := model.ImportType{}
 		err = cursor.Decode(&importType)
 		if err != nil {

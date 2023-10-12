@@ -42,10 +42,11 @@ type Config struct {
 	Debug                     bool   `json:"debug"`
 	Validate                  bool   `json:"validate"`
 	UsersTopic                string `json:"users_topic"`
+	RepublishStartup          bool   `json:"republish_startup"`
 	PermissionsTopic          string `json:"permissions_topic"`
 }
 
-//loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
+// loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
 func Load(location string) (config Config, err error) {
 	file, error := os.Open(location)
 	if error != nil {

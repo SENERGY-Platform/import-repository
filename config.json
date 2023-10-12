@@ -13,5 +13,6 @@
     "kafka_bootstrap": "localhost:9092",
     "group_id": "import-repository",
     "validate": false,
+    "republish_startup": false,
     "debug": true
 }
