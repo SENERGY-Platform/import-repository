@@ -24,8 +24,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
-	"time"
 )
 
 func main() {
@@ -38,25 +38,17 @@ func main() {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	wg, err := lib.Start(conf, ctx)
+	wg := &sync.WaitGroup{}
+
+	err = lib.Start(conf, ctx, wg)
 	if err != nil {
-		cancel()
-		if wg != nil {
-			wg.Wait()
-		}
 		log.Fatal(err)
 	}
 
-	var shutdownTime time.Time
-	go func() {
-		shutdown := make(chan os.Signal, 1)
-		signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-		sig := <-shutdown
-		log.Println("received shutdown signal", sig)
-		shutdownTime = time.Now()
-		cancel()
-	}()
-
-	wg.Wait()
-	log.Println("Shutdown complete, took", time.Since(shutdownTime))
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	sig := <-shutdown
+	log.Println("received shutdown signal", sig)
+	cancel()
+	wg.Wait() //wait for clean
 }

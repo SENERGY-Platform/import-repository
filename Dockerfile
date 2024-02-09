@@ -1,4 +1,4 @@
-FROM golang:1.21 AS builder
+FROM golang:1.22 AS builder
 
 COPY . /go/src/app
 WORKDIR /go/src/app
@@ -16,7 +16,5 @@ COPY --from=builder /go/src/app/config.json .
 COPY --from=builder /go/src/app/version.txt .
 
 EXPOSE 8080
-LABEL org.opencontainers.image.source https://github.com/SENERGY-Platform/import-repository
-
 
 ENTRYPOINT ["./app"]

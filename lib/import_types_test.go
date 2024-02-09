@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 )
@@ -34,15 +35,12 @@ import (
 const name = "import-type-name"
 
 func TestImportTypesIntegration(t *testing.T) {
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
-	wg, conf, err := createTestEnv(ctx)
-	defer func() {
-		cancel()
-		if wg != nil {
-			wg.Wait()
-		}
-	}()
+	defer cancel()
 
+	conf, err := createTestEnv(ctx, wg)
 	if err != nil {
 		t.Error(err)
 		return

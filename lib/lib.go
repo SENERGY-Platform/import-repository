@@ -30,18 +30,17 @@ import (
 	"sync"
 )
 
-func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err error) {
-	wg = &sync.WaitGroup{}
+func Start(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (err error) {
 	db, err := database.New(conf, ctx, wg)
 	if err != nil {
 		log.Println("ERROR: unable to connect to database", err)
-		return wg, err
+		return err
 	}
 
 	perm, err := com.NewSecurity(conf)
 	if err != nil {
 		log.Println("ERROR: unable to create permission handler", err)
-		return wg, err
+		return err
 	}
 
 	p, err := producer.New(conf, ctx, wg)
@@ -52,14 +51,14 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 	ctrl, err := controller.New(conf, db, perm, p)
 	if err != nil {
 		log.Println("ERROR: unable to start control", err)
-		return wg, err
+		return err
 	}
 
 	if conf.RepublishStartup {
 		err = ctrl.Republish()
 		if err != nil {
 			log.Println("ERROR: unable to republish control", err)
-			return wg, err
+			return err
 		}
 	}
 
@@ -78,8 +77,8 @@ func Start(conf config.Config, ctx context.Context) (wg *sync.WaitGroup, err err
 	err = api.Start(conf, ctrl)
 	if err != nil {
 		log.Println("ERROR: unable to start api", err)
-		return wg, err
+		return err
 	}
 
-	return wg, err
+	return err
 }

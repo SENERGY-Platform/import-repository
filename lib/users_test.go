@@ -33,20 +33,18 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestUserDelete(t *testing.T) {
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
-	wg, conf, err := createTestEnv(ctx)
-	defer func() {
-		cancel()
-		if wg != nil {
-			wg.Wait()
-		}
-	}()
+	defer cancel()
 
+	conf, err := createTestEnv(ctx, wg)
 	if err != nil {
 		t.Error(err)
 		return
