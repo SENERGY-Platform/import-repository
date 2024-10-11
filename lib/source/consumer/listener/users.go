@@ -26,7 +26,11 @@ type UserCommandMsg struct {
 	Id      string `json:"id"`
 }
 
-func UsersListenerFactory(control Controller) func(topic string, msg []byte, time time.Time) error  {
+type Controller interface {
+	DeleteUser(id string) error
+}
+
+func UsersListenerFactory(control Controller) func(topic string, msg []byte, time time.Time) error {
 	return func(_ string, msg []byte, _ time.Time) (err error) {
 		command := UserCommandMsg{}
 		err = json.Unmarshal(msg, &command)

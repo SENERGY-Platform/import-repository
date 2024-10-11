@@ -18,27 +18,13 @@ package controller
 
 import (
 	"errors"
-	"github.com/SENERGY-Platform/import-repository/lib/auth"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 	"math"
 	"net/http"
-	"strings"
 )
 
-func (this *Controller) doElementsExist(jwt auth.Token, kind string, ids []string) (allExist bool, err error) {
-	uniqueIds := []string{}
-	for _, id := range ids {
-		if !contains(uniqueIds, id) {
-			uniqueIds = append(uniqueIds, id)
-		}
-	}
-
-	var result []interface{}
-	err = this.security.GetAsUser(jwt, "/v2/"+kind+"?ids="+strings.Join(uniqueIds, ","), &result)
-	return len(result) == len(uniqueIds), err
-}
-
-func (this *Controller) ValidateImportType(jwt auth.Token, importType model.ImportType) (err error, code int) {
+func (this *Controller) ValidateImportType(token jwt.Token, importType model.ImportType) (err error, code int) {
 	if len(importType.Name) == 0 {
 		return errors.New("name might not be empty"), http.StatusBadRequest
 	}
@@ -58,7 +44,7 @@ func (this *Controller) ValidateImportType(jwt auth.Token, importType model.Impo
 		}
 	}
 
-	ok, err := this.validateContentVariable(jwt, importType.Output)
+	ok, err := this.validateContentVariable(token, importType.Output)
 	if err != nil {
 		return err, http.StatusInternalServerError
 	}
@@ -105,21 +91,25 @@ func validateConfig(conf model.ImportConfig) (valid bool) {
 	return valid
 }
 
-func (this *Controller) validateContentVariable(jwt auth.Token, variable model.ContentVariable) (valid bool, err error) {
-	valid, characteristicIds, functionIds, aspectIds := this.validateContentVariableStep(jwt, variable)
+func (this *Controller) validateContentVariable(token jwt.Token, variable model.ContentVariable) (valid bool, err error) {
+	valid, characteristicIds, functionIds, aspectIds := this.validateContentVariableStep(token, variable)
 	if !valid {
 		return false, nil
 	}
 	if len(characteristicIds) > 0 {
-		valid, err = this.doElementsExist(jwt, "characteristics", characteristicIds)
-		if !valid || err != nil {
-			return
+		for _, characteristicId := range characteristicIds {
+			_, err, code := this.deviceRepoClient.GetCharacteristic(characteristicId)
+			if err != nil || code > 299 {
+				return false, err
+			}
 		}
 	}
 	if len(functionIds) > 0 {
-		valid, err = this.doElementsExist(jwt, "functions", functionIds)
-		if !valid || err != nil {
-			return
+		for _, functionId := range functionIds {
+			_, err, code := this.deviceRepoClient.GetFunction(functionId)
+			if err != nil || code > 299 {
+				return false, err
+			}
 		}
 	}
 	if len(aspectIds) > 0 {
@@ -130,15 +120,17 @@ func (this *Controller) validateContentVariable(jwt auth.Token, variable model.C
 			}
 		}
 
-		aspectNodes, err := this.com.GetAspectNodes(uniqueIds, jwt)
-		if len(aspectNodes) != len(uniqueIds) || err != nil {
-			return false, err
+		for _, aspectId := range uniqueIds {
+			_, err, code := this.deviceRepoClient.GetAspectNode(aspectId)
+			if err != nil || code > 299 {
+				return false, err
+			}
 		}
 	}
 	return valid, err
 }
 
-func (this *Controller) validateContentVariableStep(jwt auth.Token, variable model.ContentVariable) (valid bool, characteristicIds []string, functionIds []string, aspectIds []string) {
+func (this *Controller) validateContentVariableStep(token jwt.Token, variable model.ContentVariable) (valid bool, characteristicIds []string, functionIds []string, aspectIds []string) {
 	if len(variable.Name) == 0 || len(variable.Type) == 0 {
 		return false, characteristicIds, functionIds, aspectIds
 	}
@@ -163,7 +155,7 @@ func (this *Controller) validateContentVariableStep(jwt auth.Token, variable mod
 		aspectIds = append(aspectIds, variable.AspectId)
 	}
 	for _, subVariable := range variable.SubContentVariables {
-		validInner, subCharacteristicIds, subFunctionIds, subAspectIds := this.validateContentVariableStep(jwt, subVariable)
+		validInner, subCharacteristicIds, subFunctionIds, subAspectIds := this.validateContentVariableStep(token, subVariable)
 		if !validInner {
 			return validInner, characteristicIds, functionIds, aspectIds
 		}

@@ -18,12 +18,14 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/SENERGY-Platform/import-repository/lib/auth"
-	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
+	"strconv"
+
+	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
+	"github.com/julienschmidt/httprouter"
 )
 
 func init() {
@@ -33,9 +35,50 @@ func init() {
 func ImportTypesEndpoints(config config.Config, control Controller, router *httprouter.Router) {
 	resource := "/import-types"
 
+	router.GET(resource, func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+		token, err := jwt.GetParsedToken(request)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		limit := request.URL.Query().Get("limit")
+		if limit == "" {
+			limit = "100"
+		}
+		limitInt, err := strconv.ParseInt(limit, 10, 64)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		offset := request.URL.Query().Get("offset")
+		if offset == "" {
+			offset = "0"
+		}
+		offsetInt, err := strconv.ParseInt(offset, 10, 64)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusBadRequest)
+			return
+		}
+		sort := request.URL.Query().Get("sort")
+		if sort == "" {
+			sort = "name"
+		}
+		result, err, errCode := control.ListImportTypes(token, limitInt, offsetInt, sort)
+		if err != nil {
+			http.Error(writer, err.Error(), errCode)
+			return
+		}
+		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+		err = json.NewEncoder(writer).Encode(result)
+		if err != nil {
+			log.Println("ERROR: unable to encode response", err)
+		}
+		return
+	})
+
 	router.GET(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		id := params.ByName("id")
-		token, err := auth.GetParsedToken(request)
+		token, err := jwt.GetParsedToken(request)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
@@ -55,7 +98,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 
 	router.DELETE(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		id := params.ByName("id")
-		token, err := auth.GetParsedToken(request)
+		token, err := jwt.GetParsedToken(request)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
@@ -71,7 +114,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 
 	router.PUT(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		id := params.ByName("id")
-		token, err := auth.GetParsedToken(request)
+		token, err := jwt.GetParsedToken(request)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
@@ -97,7 +140,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 
 	router.POST(resource, func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 		importType := model.ImportType{}
-		token, err := auth.GetParsedToken(request)
+		token, err := jwt.GetParsedToken(request)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return

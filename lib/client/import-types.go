@@ -19,40 +19,54 @@ package client
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"github.com/SENERGY-Platform/import-repository/lib/auth"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 	"net/http"
+	"strconv"
+
+	"github.com/SENERGY-Platform/import-repository/lib/model"
 )
 
-func (c Client) ReadImportType(id string, jwt auth.Token) (result model.ImportType, err error, errCode int) {
+func (c Client) ReadImportType(id string, token jwt.Token) (result model.ImportType, err error, errCode int) {
 	req, err := http.NewRequest(http.MethodGet, c.baseUrl+"/import-types/"+id, nil)
-	req.Header.Set("Authorization", "Bearer "+jwt.Jwt())
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", "Bearer "+token.Jwt())
 	return do[model.ImportType](req)
 }
 
-// CheckAccessToImportType NOT IMPLEMENTED!
-func (c Client) CheckAccessToImportType(jwt auth.Token, id string, action model.AuthAction) (err error, code int) {
-	return errors.New("not implemented"), http.StatusInternalServerError
+func (c Client) ListImportTypes(token jwt.Token, limit int64, offset int64, sort string) (result []model.ImportType, err error, errCode int) {
+	req, err := http.NewRequest(http.MethodGet, c.baseUrl+"/import-types?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&sort="+sort, nil)
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", "Bearer "+token.Jwt())
+	return do[[]model.ImportType](req)
 }
 
-func (c Client) CreateImportType(importType model.ImportType, jwt auth.Token) (result model.ImportType, err error, code int) {
+func (c Client) CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int) {
 	b, err := json.Marshal(importType)
 	if err != nil {
 		return result, err, http.StatusBadRequest
 	}
 	req, err := http.NewRequest(http.MethodPost, c.baseUrl+"/import-types", bytes.NewBuffer(b))
-	req.Header.Set("Authorization", "Bearer "+jwt.Jwt())
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", "Bearer "+token.Jwt())
 	return do[model.ImportType](req)
 }
 
-func (c Client) SetImportType(importType model.ImportType, jwt auth.Token) (err error, code int) {
+func (c Client) SetImportType(importType model.ImportType, token jwt.Token) (err error, code int) {
 	b, err := json.Marshal(importType)
 	if err != nil {
 		return err, http.StatusBadRequest
 	}
 	req, err := http.NewRequest(http.MethodPost, c.baseUrl+"/import-types", bytes.NewBuffer(b))
-	req.Header.Set("Authorization", "Bearer "+jwt.Jwt())
+	if err != nil {
+		return err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", "Bearer "+token.Jwt())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err, http.StatusInternalServerError
@@ -60,9 +74,12 @@ func (c Client) SetImportType(importType model.ImportType, jwt auth.Token) (err 
 	return nil, resp.StatusCode
 }
 
-func (c Client) DeleteImportType(id string, jwt auth.Token) (err error, errCode int) {
+func (c Client) DeleteImportType(id string, token jwt.Token) (err error, errCode int) {
 	req, err := http.NewRequest(http.MethodDelete, c.baseUrl+"/import-types/"+id, nil)
-	req.Header.Set("Authorization", "Bearer "+jwt.Jwt())
+	if err != nil {
+		return err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", "Bearer "+token.Jwt())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err, http.StatusInternalServerError

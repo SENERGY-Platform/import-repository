@@ -16,30 +16,37 @@
 
 package controller
 
-import "github.com/SENERGY-Platform/import-repository/lib/auth"
+import (
+	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
+)
 
 func (this *Controller) DeleteUser(userId string) error {
-	token, err := auth.CreateToken("device-manager", userId)
+	importTypes, err, _ := this.permV2Client.ListResourcesWithAdminPermission(permV2.InternalAdminToken, PermV2Topic, permV2.ListOptions{})
 	if err != nil {
 		return err
 	}
-	//devices
-	devicesToDelete, userToDeleteFromDevices, err := this.com.ResourcesEffectedByUserDelete(token, this.config.ImportTypeTopic)
-	if err != nil {
-		return err
-	}
-	for _, id := range devicesToDelete {
-		err = this.producer.PublishImportTypeDelete(id, userId)
-		if err != nil {
-			return err
+	for _, importType := range importTypes {
+		perm, ok := importType.UserPermissions[userId]
+		if !ok {
+			continue // user has no rights to that import type
+		}
+		if !perm.Administrate {
+			continue // user has no administrate rights to that import type
+		}
+		delete(importType.UserPermissions, userId) // find any user beside this one
+		found := false
+		for _, perm := range importType.UserPermissions {
+			if perm.Administrate {
+				found = true
+			}
+		}
+		if !found {
+			ctx, _ := getTimeoutContext()
+			err = this.db.RemoveImportType(ctx, importType.Id)
+			if err != nil {
+				return err
+			}
 		}
 	}
-	for _, id := range userToDeleteFromDevices {
-		err = this.producer.PublishDeleteUserRights(this.config.ImportTypeTopic, id, userId)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

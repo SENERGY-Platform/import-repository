@@ -23,7 +23,7 @@ import (
 
 type Database interface {
 	GetImportType(ctx context.Context, id string) (device model.ImportType, exists bool, err error)
-	ListImportTypes(ctx context.Context, limit int64, offset int64, sort string) (result []model.ImportType, err error)
+	ListImportTypes(ctx context.Context, limit int64, offset int64, sort string, limitToIds []string) (result []model.ImportType, err error)
 	SetImportType(ctx context.Context, importType model.ImportType) error
 	RemoveImportType(ctx context.Context, id string) error
 }

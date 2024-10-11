@@ -18,29 +18,42 @@ package controller
 
 import (
 	"context"
-	"github.com/SENERGY-Platform/import-repository/lib/com"
+	"time"
+
+	deviceRepo "github.com/SENERGY-Platform/device-repository/lib/client"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
-	"time"
+	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
 )
 
-func New(config config.Config, db database.Database, security Security, producer Producer) (ctrl *Controller, err error) {
+func New(config config.Config, db database.Database, permV2Client permV2.Client) (ctrl *Controller, err error) {
 	ctrl = &Controller{
-		db:       db,
-		producer: producer,
-		security: security,
-		config:   config,
-		com:      com.New(config),
+		db:               db,
+		config:           config,
+		permV2Client:     permV2Client,
+		deviceRepoClient: deviceRepo.NewClient(config.DeviceRepoUrl),
 	}
+	_, err, _ = ctrl.permV2Client.SetTopic(permV2.InternalAdminToken, permV2.Topic{
+		Id: PermV2Topic,
+		DefaultPermissions: permV2.ResourcePermissions{
+			RolePermissions: map[string]permV2.PermissionsMap{
+				"admin": {
+					Read:         true,
+					Write:        true,
+					Execute:      true,
+					Administrate: true,
+				},
+			},
+		},
+	})
 	return
 }
 
 type Controller struct {
-	db       database.Database
-	security Security
-	producer Producer
-	com      *com.Com
-	config   config.Config
+	db               database.Database
+	config           config.Config
+	permV2Client     permV2.Client
+	deviceRepoClient deviceRepo.Interface
 }
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {

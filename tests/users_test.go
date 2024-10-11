@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package lib
+package tests
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/IBM/sarama"
-	"github.com/SENERGY-Platform/import-repository/lib/auth"
-	"github.com/SENERGY-Platform/import-repository/lib/com"
-	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
-	"github.com/SENERGY-Platform/import-repository/lib/source/producer"
 	"log"
 	"net/http"
 	"reflect"
@@ -36,6 +29,14 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/controller"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
+	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 )
 
 func TestUserDelete(t *testing.T) {
@@ -44,33 +45,18 @@ func TestUserDelete(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	conf, err := createTestEnv(ctx, wg)
+	permv2Client, conf, err := createTestEnv(ctx, wg)
 	if err != nil {
 		t.Error(err)
 		return
 	}
 
-	user1, err := auth.CreateToken("test", "user1")
+	user1, err := createToken("test", "user1")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	user2, err := auth.CreateToken("test", "user2")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	//to ensure that pagination is used
-	oldBatchSize := com.ResourcesEffectedByUserDelete_BATCH_SIZE
-	com.ResourcesEffectedByUserDelete_BATCH_SIZE = 5
-	defer func() {
-		com.ResourcesEffectedByUserDelete_BATCH_SIZE = oldBatchSize
-	}()
-
-	time.Sleep(10 * time.Second)
-
-	publisher, err := producer.New(conf, ctx, wg)
+	user2, err := createToken("test", "user2")
 	if err != nil {
 		t.Error(err)
 		return
@@ -84,33 +70,99 @@ func TestUserDelete(t *testing.T) {
 	time.Sleep(30 * time.Second)
 
 	t.Run("change permissions", func(t *testing.T) {
-		for i := 0; i < 4; i++ {
+		for i := 0; i < 2; i++ {
 			id := ids[i]
-			err = setPermission(publisher, conf, user2.GetUserId(), id, "rwxa")
+			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
+				UserPermissions: map[string]permV2.PermissionsMap{
+					user2.Sub: permV2.PermissionsMap{
+						Read:         true,
+						Write:        true,
+						Execute:      true,
+						Administrate: true,
+					},
+				},
+			})
 			if err != nil {
 				t.Error(err)
 				return
 			}
 		}
-		for i := 10; i < 15; i++ {
-			id := ids[i]
-			err = setPermission(publisher, conf, user1.GetUserId(), id, "rwxa")
-			if err != nil {
-				t.Error(err)
-				return
-			}
-		}
+
 		for i := 2; i < 4; i++ {
 			id := ids[i]
-			err = setPermission(publisher, conf, user1.GetUserId(), id, "rx")
+			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
+				UserPermissions: map[string]permV2.PermissionsMap{
+					user2.Sub: permV2.PermissionsMap{
+						Read:         true,
+						Write:        true,
+						Execute:      true,
+						Administrate: true,
+					},
+					user1.Sub: permV2.PermissionsMap{
+						Read:    true,
+						Execute: true,
+					},
+				},
+			})
 			if err != nil {
 				t.Error(err)
 				return
 			}
 		}
+
+		for i := 10; i < 12; i++ {
+			id := ids[i]
+			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
+				UserPermissions: map[string]permV2.PermissionsMap{
+					user1.Sub: permV2.PermissionsMap{
+						Read:         true,
+						Write:        true,
+						Execute:      true,
+						Administrate: true,
+					},
+				},
+			})
+			if err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
 		for i := 12; i < 14; i++ {
 			id := ids[i]
-			err = setPermission(publisher, conf, user2.GetUserId(), id, "rx")
+			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
+				UserPermissions: map[string]permV2.PermissionsMap{
+					user1.Sub: permV2.PermissionsMap{
+						Read:         true,
+						Write:        true,
+						Execute:      true,
+						Administrate: true,
+					},
+					user2.Sub: permV2.PermissionsMap{
+						Read:    true,
+						Execute: true,
+					},
+				},
+			})
+			if err != nil {
+				t.Error(err)
+				return
+			}
+		}
+
+		// 10, 11, 12, 13, 14 for user1 rwxa
+		for i := 13; i < 15; i++ {
+			id := ids[i]
+			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
+				UserPermissions: map[string]permV2.PermissionsMap{
+					user1.Sub: permV2.PermissionsMap{
+						Read:         true,
+						Write:        true,
+						Execute:      true,
+						Administrate: true,
+					},
+				},
+			})
 			if err != nil {
 				t.Error(err)
 				return
@@ -164,7 +216,7 @@ type IdWrapper struct {
 	Id string `json:"id"`
 }
 
-func initImportTypes(config config.Config, user1 auth.Token, user2 auth.Token, createdIds *[]string) func(t *testing.T) {
+func initImportTypes(config config.Config, user1 jwt.Token, user2 jwt.Token, createdIds *[]string) func(t *testing.T) {
 	return func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			temp := IdWrapper{}
@@ -217,17 +269,12 @@ func initImportTypes(config config.Config, user1 auth.Token, user2 auth.Token, c
 	}
 }
 
-func setPermission(publisher *producer.Producer, conf config.Config, userId string, id string, right string) error {
-	return publisher.PublishPermissionCommand(producer.PermCommandMsg{
-		Command:  "PUT",
-		Kind:     conf.ImportTypeTopic,
-		Resource: id,
-		User:     userId,
-		Right:    right,
-	})
+func setPermission(permv2Client permV2.Client, id string, permissions permV2.ResourcePermissions) error {
+	_, err, _ := permv2Client.SetPermission(permV2.InternalAdminToken, controller.PermV2Topic, id, permissions)
+	return err
 }
 
-func checkUserImportTypes(conf config.Config, token auth.Token, expectedIdsOrig []string) func(t *testing.T) {
+func checkUserImportTypes(conf config.Config, token jwt.Token, expectedIdsOrig []string) func(t *testing.T) {
 	return func(t *testing.T) {
 		expectedIds := []string{}
 		temp, err := json.Marshal(expectedIdsOrig)

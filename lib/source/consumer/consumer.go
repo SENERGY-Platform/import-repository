@@ -131,3 +131,8 @@ func (this *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sa
 
 	return nil
 }
+
+func HandleError(err error, _ *Consumer) {
+	log.Println(err)
+	panic("Failing hard in order to prevent committing of invalid offsets!")
+}

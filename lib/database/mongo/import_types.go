@@ -79,7 +79,7 @@ func (this *Mongo) GetImportType(ctx context.Context, id string) (importType mod
 	return importType, true, err
 }
 
-func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int64, sort string) (result []model.ImportType, err error) {
+func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int64, sort string, limitToIds []string) (result []model.ImportType, err error) {
 	opt := options.Find()
 	opt.SetLimit(limit)
 	opt.SetSkip(offset)
@@ -100,7 +100,13 @@ func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int6
 	}
 	opt.SetSort(bson.D{{sortby, direction}})
 
-	cursor, err := this.importTypeCollection().Find(ctx, bson.M{}, opt)
+	filter := bson.M{}
+
+	if limitToIds != nil && len(limitToIds) > 0 {
+		filter[idKey] = bson.M{"$in": limitToIds}
+	}
+
+	cursor, err := this.importTypeCollection().Find(ctx, filter, opt)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +130,15 @@ func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int6
 }
 
 func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportType) error {
+	oldConfigs := []model.ImportConfig{}
 	for idx, config := range importType.Configs {
+		oldConfigs = append(oldConfigs, model.ImportConfig{
+			Name:               config.Name,
+			Description:        config.Description,
+			Type:               config.Type,
+			DefaultValue:       config.DefaultValue,
+			DefaultValueString: config.DefaultValueString,
+		})
 		err := configToWrite(&config)
 		if err != nil {
 			return err
@@ -132,6 +146,12 @@ func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportTyp
 		importType.Configs[idx] = config
 	}
 	_, err := this.importTypeCollection().ReplaceOne(ctx, bson.M{idKey: importType.Id}, importType, options.Replace().SetUpsert(true))
+	if err != nil {
+		return err
+	}
+	for i := range importType.Configs {
+		importType.Configs[i] = oldConfigs[i]
+	}
 	return err
 }
 

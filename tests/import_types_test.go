@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package lib
+package tests
 
 import (
 	"bytes"
@@ -40,7 +40,7 @@ func TestImportTypesIntegration(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	conf, err := createTestEnv(ctx, wg)
+	_, conf, err := createTestEnv(ctx, wg)
 	if err != nil {
 		t.Error(err)
 		return

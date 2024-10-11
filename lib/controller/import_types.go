@@ -18,15 +18,18 @@ package controller
 
 import (
 	"errors"
-	"github.com/SENERGY-Platform/import-repository/lib/auth"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/hashicorp/go-uuid"
 	"net/http"
+
+	"github.com/SENERGY-Platform/import-repository/lib/model"
+	permV2Model "github.com/SENERGY-Platform/permissions-v2/pkg/model"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
+	"github.com/hashicorp/go-uuid"
 )
 
 const idPrefix = "urn:infai:ses:import-type:"
+const PermV2Topic = "import-types"
 
-func (this *Controller) CreateImportType(importType model.ImportType, jwt auth.Token) (result model.ImportType, err error, code int) {
+func (this *Controller) CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int) {
 	id, err := uuid.GenerateUUID()
 	if err != nil {
 		return result, err, http.StatusInternalServerError
@@ -38,14 +41,15 @@ func (this *Controller) CreateImportType(importType model.ImportType, jwt auth.T
 	if importType.Owner != "" {
 		return result, errors.New("explicit setting of owner not allowed"), http.StatusBadRequest
 	}
-	importType.Owner = jwt.GetUserId()
+	importType.Owner = token.GetUserId()
 	if this.config.Validate {
-		err, code = this.ValidateImportType(jwt, importType)
+		err, code = this.ValidateImportType(token, importType)
 		if err != nil {
 			return result, err, code
 		}
 	}
-	err = this.producer.PublishImportType(importType, importType.Owner)
+	ctx, _ := getTimeoutContext()
+	err = this.db.SetImportType(ctx, importType)
 	if err != nil {
 		return result, err, http.StatusInternalServerError
 	}
@@ -53,7 +57,12 @@ func (this *Controller) CreateImportType(importType model.ImportType, jwt auth.T
 	return importType, nil, http.StatusCreated
 }
 
-func (this *Controller) ReadImportType(id string, jwt auth.Token) (result model.ImportType, err error, errCode int) {
+func (this *Controller) ReadImportType(id string, token jwt.Token) (result model.ImportType, err error, errCode int) {
+	err, code := this.CheckAccessToImportType(token, id, permV2Model.Read)
+	if err != nil {
+		result = model.ImportType{}
+		return result, err, code
+	}
 	ctx, _ := getTimeoutContext()
 	result, exists, err := this.db.GetImportType(ctx, id)
 	if err != nil {
@@ -62,16 +71,27 @@ func (this *Controller) ReadImportType(id string, jwt auth.Token) (result model.
 	if !exists {
 		return result, errors.New("not found"), http.StatusNotFound
 	}
-	err, code := this.CheckAccessToImportType(jwt, id, model.READ)
-	if err != nil {
-		result = model.ImportType{}
-		return result, err, code
-	}
-
 	return result, nil, http.StatusOK
 }
 
-func (this *Controller) SetImportType(importType model.ImportType, jwt auth.Token) (err error, errCode int) {
+func (this *Controller) ListImportTypes(token jwt.Token, limit int64, offset int64, sort string) (result []model.ImportType, err error, errCode int) {
+	ids, err, errCode := this.permV2Client.ListAccessibleResourceIds(token.Token, PermV2Topic, permV2Model.ListOptions{}, permV2Model.Read)
+	if err != nil {
+		return
+	}
+	ctx, _ := getTimeoutContext()
+	result, err = this.db.ListImportTypes(ctx, limit, offset, sort, ids)
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	return result, nil, http.StatusOK
+}
+
+func (this *Controller) SetImportType(importType model.ImportType, token jwt.Token) (err error, errCode int) {
+	err, code := this.CheckAccessToImportType(token, importType.Id, permV2Model.Write)
+	if err != nil {
+		return err, code
+	}
 	ctx, _ := getTimeoutContext()
 	existing, exists, err := this.db.GetImportType(ctx, importType.Id)
 	if err != nil {
@@ -80,64 +100,44 @@ func (this *Controller) SetImportType(importType model.ImportType, jwt auth.Toke
 	if !exists {
 		return errors.New("not found"), http.StatusNotFound
 	}
-	err, code := this.CheckAccessToImportType(jwt, importType.Id, model.WRITE)
-	if err != nil {
-		return err, code
-	}
 	if importType.Owner != existing.Owner {
 		return errors.New("transfer of ownership not possible!"), http.StatusBadRequest
 	}
 	if this.config.Validate {
-		err, code = this.ValidateImportType(jwt, importType)
+		err, code = this.ValidateImportType(token, importType)
 		if err != nil {
 			return err, code
 		}
 	}
-	err = this.producer.PublishImportType(importType, importType.Owner)
+	ctx, _ = getTimeoutContext()
+	err = this.db.SetImportType(ctx, importType)
 	if err != nil {
-		return err, http.StatusInternalServerError // TODO rollback
+		return err, http.StatusInternalServerError
 	}
 
 	return nil, http.StatusOK
 }
 
-func (this *Controller) DeleteImportType(id string, jwt auth.Token) (err error, errCode int) {
-	ctx, _ := getTimeoutContext()
-	existing, exists, err := this.db.GetImportType(ctx, id)
-	if err != nil {
-		return err, http.StatusInternalServerError
-	}
-	if !exists {
-		return errors.New("not found"), http.StatusNotFound
-	}
-	err, code := this.CheckAccessToImportType(jwt, id, model.WRITE)
+func (this *Controller) DeleteImportType(id string, token jwt.Token) (err error, errCode int) {
+	err, code := this.CheckAccessToImportType(token, id, permV2Model.Administrate)
 	if err != nil {
 		return err, code
 	}
-	err = this.producer.PublishImportTypeDelete(id, existing.Owner)
+	ctx, _ := getTimeoutContext()
+	err = this.db.RemoveImportType(ctx, id)
 	if err != nil {
-		return err, http.StatusInternalServerError // TODO rollback
+		return err, http.StatusInternalServerError
 	}
 	return nil, http.StatusNoContent
 }
 
-func (this *Controller) DeleteImportTypeFromDB(id string) (err error) {
-	ctx, _ := getTimeoutContext()
-	return this.db.RemoveImportType(ctx, id)
-}
-
-func (this *Controller) SetImportTypeInDB(importType model.ImportType) (err error) {
-	ctx, _ := getTimeoutContext()
-	return this.db.SetImportType(ctx, importType)
-}
-
-func (this *Controller) CheckAccessToImportType(jwt auth.Token, id string, action model.AuthAction) (err error, errCode int) {
-	ok, err := this.security.CheckBool(jwt, this.config.ImportTypeTopic, id, action)
+func (this *Controller) CheckAccessToImportType(token jwt.Token, id string, action permV2Model.Permission) (err error, errCode int) {
+	ok, err, errCode := this.permV2Client.CheckPermission(token.Token, PermV2Topic, id, action)
 	if err != nil {
-		return err, http.StatusInternalServerError
+		return err, errCode
 	}
 	if !ok {
-		return errors.New("access denied"), http.StatusForbidden
+		return errors.New("forbidden"), http.StatusForbidden
 	}
 	return
 }

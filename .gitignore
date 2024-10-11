@@ -1,3 +1,5 @@
 .idea
 *.iml
 import-repository
+.vscode
+__debug
