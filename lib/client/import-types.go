@@ -44,6 +44,11 @@ func (c Client) ListImportTypes(token jwt.Token, limit int64, offset int64, sort
 	return do[[]model.ImportType](req)
 }
 
+func (c Client) ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (c Client) CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int) {
 	b, err := json.Marshal(importType)
 	if err != nil {

@@ -87,6 +87,11 @@ func (this *Controller) ListImportTypes(token jwt.Token, limit int64, offset int
 	return result, nil, http.StatusOK
 }
 
+func (this *Controller) ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int) {
+	//TODO: implement
+	panic("implement me")
+}
+
 func (this *Controller) SetImportType(importType model.ImportType, token jwt.Token) (err error, errCode int) {
 	err, code := this.CheckAccessToImportType(token, importType.Id, permV2Model.Write)
 	if err != nil {

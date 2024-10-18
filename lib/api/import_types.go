@@ -63,6 +63,9 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 		if sort == "" {
 			sort = "name"
 		}
+		//TODO:
+		//	fill model.ImportTypeListOptions with
+		//  use ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int)
 		result, err, errCode := control.ListImportTypes(token, limitInt, offsetInt, sort)
 		if err != nil {
 			http.Error(writer, err.Error(), errCode)

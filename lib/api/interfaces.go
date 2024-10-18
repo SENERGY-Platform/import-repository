@@ -24,6 +24,7 @@ import (
 type Controller interface {
 	ReadImportType(id string, token jwt.Token) (result model.ImportType, err error, errCode int)
 	ListImportTypes(token jwt.Token, limit int64, offset int64, sort string) (result []model.ImportType, err error, errCode int)
+	ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int)
 	CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int)
 	SetImportType(importType model.ImportType, token jwt.Token) (err error, code int)
 	DeleteImportType(id string, token jwt.Token) (err error, errCode int)

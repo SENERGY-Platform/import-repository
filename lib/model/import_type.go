@@ -107,3 +107,16 @@ type ImportConfig struct {
 	DefaultValue       interface{} `json:"default_value"`
 	DefaultValueString *string     `json:"-"`
 }
+
+type ImportTypeListOptions struct {
+	Search   string
+	Limit    int64                      //default 100
+	Offset   int64                      //default 0
+	SortBy   string                     //default name.asc
+	Criteria []ImportTypeFilterCriteria //filter; ignored if nil
+}
+
+type ImportTypeFilterCriteria struct {
+	FunctionId string   `json:"function_id"`
+	AspectIds  []string `json:"aspect_ids"`
+}

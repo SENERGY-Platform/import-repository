@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/SENERGY-Platform/import-repository/lib/api"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"io"
 	"net/http"
 )
@@ -51,3 +52,6 @@ func do[T any](req *http.Request) (result T, err error, code int) {
 	}
 	return
 }
+
+type ImportTypeListOptions = model.ImportTypeListOptions
+type ImportTypeFilterCriteria = model.ImportTypeFilterCriteria
