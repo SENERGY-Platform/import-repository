@@ -17,12 +17,8 @@
 package tests
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
-	"log"
-	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
@@ -172,8 +168,8 @@ func TestUserDelete(t *testing.T) {
 
 	time.Sleep(30 * time.Second)
 
-	t.Run("check user1 before delete", checkUserImportTypes(conf, user1, ids[:15]))
-	t.Run("check user2 before delete", checkUserImportTypes(conf, user2, append(append([]string{}, ids[:4]...), ids[10:]...)))
+	t.Run("check user1 before delete", checkUserImportTypes(permv2Client, user1, ids[:15]))
+	t.Run("check user2 before delete", checkUserImportTypes(permv2Client, user2, append(append([]string{}, ids[:4]...), ids[10:]...)))
 
 	t.Run("delete user1", func(t *testing.T) {
 		kafkaConf := sarama.NewConfig()
@@ -207,8 +203,8 @@ func TestUserDelete(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	t.Run("check user1 after delete", checkUserImportTypes(conf, user1, []string{}))
-	t.Run("check user2 after delete", checkUserImportTypes(conf, user2, append(append(append([]string{}, ids[:4]...), ids[10:12]...), ids[14:]...)))
+	t.Run("check user1 after delete", checkUserImportTypes(permv2Client, user1, []string{}))
+	t.Run("check user2 after delete", checkUserImportTypes(permv2Client, user2, append(append(append([]string{}, ids[:4]...), ids[10:12]...), ids[14:]...)))
 
 }
 
@@ -274,7 +270,7 @@ func setPermission(permv2Client permV2.Client, id string, permissions permV2.Res
 	return err
 }
 
-func checkUserImportTypes(conf config.Config, token jwt.Token, expectedIdsOrig []string) func(t *testing.T) {
+func checkUserImportTypes(permV2Client permV2.Client, token jwt.Token, expectedIdsOrig []string) func(t *testing.T) {
 	return func(t *testing.T) {
 		expectedIds := []string{}
 		temp, err := json.Marshal(expectedIdsOrig)
@@ -287,51 +283,16 @@ func checkUserImportTypes(conf config.Config, token jwt.Token, expectedIdsOrig [
 			t.Error(err)
 			return
 		}
-		req, err := http.NewRequest("GET", conf.PermissionsUrl+"/v3/resources/"+conf.ImportTypeTopic+"?rights=r&limit=100", nil)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		req.Header.Set("Authorization", token.Token)
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer resp.Body.Close()
 
-		if resp.StatusCode >= 300 {
-			buf := new(bytes.Buffer)
-			buf.ReadFrom(resp.Body)
-			resp.Body.Close()
-			log.Println("DEBUG:", buf.String())
-			err = errors.New("access denied")
-			t.Error(err)
-			return
-		}
-
-		devices := []map[string]interface{}{}
-		err = json.NewDecoder(resp.Body).Decode(&devices)
+		actualIds, err, _ := permV2Client.ListAccessibleResourceIds(token.Jwt(), controller.PermV2Topic, permV2.ListOptions{}, permV2.Read)
 		if err != nil {
 			t.Error(err)
 			return
-		}
-		actualIds := []string{}
-		for _, device := range devices {
-			id, ok := device["id"].(string)
-			if !ok {
-				t.Error("expect device id to be string", device)
-				return
-			}
-			actualIds = append(actualIds, id)
 		}
 		sort.Strings(actualIds)
 		sort.Strings(expectedIds)
-
 		if !reflect.DeepEqual(actualIds, expectedIds) {
-			t.Error(actualIds,
-				"\n",
-				expectedIds)
+			t.Error("\n", actualIds, "\n", expectedIds)
 			return
 		}
 	}

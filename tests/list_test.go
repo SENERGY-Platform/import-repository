@@ -159,7 +159,7 @@ func TestList(t *testing.T) {
 
 func testImportTypesList(c client.Interface, options client.ImportTypeListOptions, expected []model.ImportType) func(t *testing.T) {
 	return func(t *testing.T) {
-		result, err, _ := c.ListImportTypesV2(userjwt, options)
+		result, _, err, _ := c.ListImportTypes(userjwt, options)
 		if err != nil {
 			t.Error(err)
 			return

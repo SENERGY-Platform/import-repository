@@ -21,7 +21,9 @@ import (
 	"encoding/json"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 )
@@ -31,22 +33,44 @@ func (c Client) ReadImportType(id string, token jwt.Token) (result model.ImportT
 	if err != nil {
 		return result, err, http.StatusInternalServerError
 	}
-	req.Header.Set("Authorization", "Bearer "+token.Jwt())
+	req.Header.Set("Authorization", token.Jwt())
 	return do[model.ImportType](req)
 }
 
-func (c Client) ListImportTypes(token jwt.Token, limit int64, offset int64, sort string) (result []model.ImportType, err error, errCode int) {
-	req, err := http.NewRequest(http.MethodGet, c.baseUrl+"/import-types?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&sort="+sort, nil)
-	if err != nil {
-		return result, err, http.StatusInternalServerError
+func (c Client) ListImportTypes(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, total int64, err error, errCode int) {
+	queryString := ""
+	query := url.Values{}
+	if options.Search != "" {
+		query.Set("search", options.Search)
 	}
-	req.Header.Set("Authorization", "Bearer "+token.Jwt())
-	return do[[]model.ImportType](req)
-}
-
-func (c Client) ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int) {
-	//TODO implement me
-	panic("implement me")
+	if options.Ids != nil {
+		query.Set("ids", strings.Join(options.Ids, ","))
+	}
+	if options.SortBy != "" {
+		query.Set("sort", options.SortBy)
+	}
+	if options.Limit != 0 {
+		query.Set("limit", strconv.FormatInt(options.Limit, 10))
+	}
+	if options.Offset != 0 {
+		query.Set("offset", strconv.FormatInt(options.Offset, 10))
+	}
+	if len(options.Criteria) > 0 {
+		filterStr, err := json.Marshal(options.Criteria)
+		if err != nil {
+			return result, total, err, http.StatusBadRequest
+		}
+		query.Add("criteria", string(filterStr))
+	}
+	if len(query) > 0 {
+		queryString = "?" + query.Encode()
+	}
+	req, err := http.NewRequest(http.MethodGet, c.baseUrl+"/import-types"+queryString, nil)
+	if err != nil {
+		return result, total, err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", token.Jwt())
+	return doWithTotalInResult[[]model.ImportType](req)
 }
 
 func (c Client) CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int) {
@@ -58,7 +82,7 @@ func (c Client) CreateImportType(importType model.ImportType, token jwt.Token) (
 	if err != nil {
 		return result, err, http.StatusInternalServerError
 	}
-	req.Header.Set("Authorization", "Bearer "+token.Jwt())
+	req.Header.Set("Authorization", token.Jwt())
 	return do[model.ImportType](req)
 }
 
@@ -71,7 +95,7 @@ func (c Client) SetImportType(importType model.ImportType, token jwt.Token) (err
 	if err != nil {
 		return err, http.StatusInternalServerError
 	}
-	req.Header.Set("Authorization", "Bearer "+token.Jwt())
+	req.Header.Set("Authorization", token.Jwt())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err, http.StatusInternalServerError
@@ -84,7 +108,7 @@ func (c Client) DeleteImportType(id string, token jwt.Token) (err error, errCode
 	if err != nil {
 		return err, http.StatusInternalServerError
 	}
-	req.Header.Set("Authorization", "Bearer "+token.Jwt())
+	req.Header.Set("Authorization", token.Jwt())
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err, http.StatusInternalServerError

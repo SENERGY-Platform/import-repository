@@ -2,7 +2,6 @@
     "server_port": "8080",
     "jwt_pub_rsa": "",
     "users_topic": "user",
-    "permissions_topic": "permissions",
     "permission_v2_url": "http://permv2.permissions:8080",
     "device_repo_url": "http://device-repo:8080",
     "mongo_url": "mongodb://localhost:27017",

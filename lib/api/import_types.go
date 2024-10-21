@@ -21,6 +21,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
@@ -41,36 +42,60 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
-		limit := request.URL.Query().Get("limit")
-		if limit == "" {
-			limit = "100"
+
+		listOptions := model.ImportTypeListOptions{
+			Limit:  100,
+			Offset: 0,
 		}
-		limitInt, err := strconv.ParseInt(limit, 10, 64)
+		limitParam := request.URL.Query().Get("limit")
+		if limitParam != "" {
+			listOptions.Limit, err = strconv.ParseInt(limitParam, 10, 64)
+		}
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			http.Error(writer, "unable to parse limit:"+err.Error(), http.StatusBadRequest)
 			return
 		}
-		offset := request.URL.Query().Get("offset")
-		if offset == "" {
-			offset = "0"
+
+		offsetParam := request.URL.Query().Get("offset")
+		if offsetParam != "" {
+			listOptions.Offset, err = strconv.ParseInt(offsetParam, 10, 64)
 		}
-		offsetInt, err := strconv.ParseInt(offset, 10, 64)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			http.Error(writer, "unable to parse offset:"+err.Error(), http.StatusBadRequest)
 			return
 		}
-		sort := request.URL.Query().Get("sort")
-		if sort == "" {
-			sort = "name"
+
+		idsParam := request.URL.Query().Get("ids")
+		if request.URL.Query().Has("ids") {
+			if idsParam != "" {
+				listOptions.Ids = strings.Split(strings.TrimSpace(idsParam), ",")
+			} else {
+				listOptions.Ids = []string{}
+			}
 		}
-		//TODO:
-		//	fill model.ImportTypeListOptions with
-		//  use ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int)
-		result, err, errCode := control.ListImportTypes(token, limitInt, offsetInt, sort)
+
+		criteria := request.URL.Query().Get("criteria")
+		if criteria != "" {
+			listOptions.Criteria = []model.ImportTypeFilterCriteria{}
+			err = json.Unmarshal([]byte(criteria), &listOptions.Criteria)
+			if err != nil {
+				http.Error(writer, err.Error(), http.StatusBadRequest)
+				return
+			}
+		}
+
+		listOptions.Search = request.URL.Query().Get("search")
+		listOptions.SortBy = request.URL.Query().Get("sort")
+		if listOptions.SortBy == "" {
+			listOptions.SortBy = "name.asc"
+		}
+
+		result, total, err, errCode := control.ListImportTypes(token, listOptions)
 		if err != nil {
 			http.Error(writer, err.Error(), errCode)
 			return
 		}
+		writer.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		err = json.NewEncoder(writer).Encode(result)
 		if err != nil {

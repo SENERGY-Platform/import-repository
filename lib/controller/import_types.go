@@ -74,22 +74,36 @@ func (this *Controller) ReadImportType(id string, token jwt.Token) (result model
 	return result, nil, http.StatusOK
 }
 
-func (this *Controller) ListImportTypes(token jwt.Token, limit int64, offset int64, sort string) (result []model.ImportType, err error, errCode int) {
-	ids, err, errCode := this.permV2Client.ListAccessibleResourceIds(token.Token, PermV2Topic, permV2Model.ListOptions{}, permV2Model.Read)
-	if err != nil {
-		return
+func (this *Controller) ListImportTypes(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, total int64, err error, errCode int) {
+	ids := []string{}
+	if options.Ids == nil {
+		if token.IsAdmin() {
+			ids = nil //no auth check for admins -> no id filter
+		} else {
+			ids, err, _ = this.permV2Client.ListAccessibleResourceIds(token.Token, PermV2Topic, permV2Model.ListOptions{}, permV2Model.Read)
+			if err != nil {
+				return result, total, err, http.StatusInternalServerError
+			}
+		}
+	} else {
+		options.Limit = 0
+		options.Offset = 0
+		idMap, err, _ := this.permV2Client.CheckMultiplePermissions(token.Token, PermV2Topic, options.Ids, permV2Model.Read)
+		if err != nil {
+			return result, total, err, http.StatusInternalServerError
+		}
+		for id, ok := range idMap {
+			if ok {
+				ids = append(ids, id)
+			}
+		}
 	}
 	ctx, _ := getTimeoutContext()
-	result, err = this.db.ListImportTypes(ctx, limit, offset, sort, ids)
+	result, total, err = this.db.ListImportTypes(ctx, options)
 	if err != nil {
-		return result, err, http.StatusInternalServerError
+		return result, total, err, http.StatusInternalServerError
 	}
-	return result, nil, http.StatusOK
-}
-
-func (this *Controller) ListImportTypesV2(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, err error, errCode int) {
-	//TODO: implement
-	panic("implement me")
+	return result, total, nil, http.StatusOK
 }
 
 func (this *Controller) SetImportType(importType model.ImportType, token jwt.Token) (err error, errCode int) {

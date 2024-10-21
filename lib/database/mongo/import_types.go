@@ -25,6 +25,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"regexp"
 	"strings"
 )
 
@@ -79,54 +80,55 @@ func (this *Mongo) GetImportType(ctx context.Context, id string) (importType mod
 	return importType, true, err
 }
 
-func (this *Mongo) ListImportTypes(ctx context.Context, limit int64, offset int64, sort string, limitToIds []string) (result []model.ImportType, err error) {
+func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.ImportTypeListOptions) (result []model.ImportType, total int64, err error) {
 	opt := options.Find()
-	opt.SetLimit(limit)
-	opt.SetSkip(offset)
-
-	parts := strings.Split(sort, ".")
-	sortby := idKey
-	switch parts[0] {
-	case "id":
-		sortby = idKey
-	case "name":
-		sortby = nameKey
-	default:
-		sortby = idKey
+	if listOptions.Limit > 0 {
+		opt.SetLimit(listOptions.Limit)
 	}
+	if listOptions.Offset > 0 {
+		opt.SetSkip(listOptions.Offset)
+	}
+
+	if listOptions.SortBy == "" {
+		listOptions.SortBy = "name.asc"
+	}
+
+	sortby := listOptions.SortBy
+	sortby = strings.TrimSuffix(sortby, ".asc")
+	sortby = strings.TrimSuffix(sortby, ".desc")
+
 	direction := int32(1)
-	if len(parts) > 1 && parts[1] == "desc" {
+	if strings.HasSuffix(listOptions.SortBy, ".desc") {
 		direction = int32(-1)
 	}
 	opt.SetSort(bson.D{{sortby, direction}})
 
 	filter := bson.M{}
-
-	if limitToIds != nil && len(limitToIds) > 0 {
-		filter[idKey] = bson.M{"$in": limitToIds}
+	if listOptions.Ids != nil {
+		filter[idKey] = bson.M{"$in": listOptions.Ids}
 	}
+	search := strings.TrimSpace(listOptions.Search)
+	if search != "" {
+		escapedSearch := regexp.QuoteMeta(search)
+		filter[nameKey] = bson.M{"$regex": escapedSearch, "$options": "i"}
+	}
+
+	//TODO: SNRGY-3572 filter by listOptions.Criteria
+	//	test with tests/list_test.go::TestList()
 
 	cursor, err := this.importTypeCollection().Find(ctx, filter, opt)
 	if err != nil {
-		return nil, err
+		return result, total, err
 	}
-	for cursor.Next(ctx) {
-		importType := model.ImportType{}
-		err = cursor.Decode(&importType)
-		if err != nil {
-			return nil, err
-		}
-		for idx, config := range importType.Configs {
-			err = configToRead(&config)
-			if err != nil {
-				return result, err
-			}
-			importType.Configs[idx] = config
-		}
-		result = append(result, importType)
+	err = cursor.All(ctx, &result)
+	if err != nil {
+		return result, total, err
 	}
-	err = cursor.Err()
-	return
+	total, err = this.importTypeCollection().CountDocuments(ctx, filter)
+	if err != nil {
+		return result, total, err
+	}
+	return result, total, err
 }
 
 func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportType) error {

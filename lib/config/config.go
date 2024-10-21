@@ -32,8 +32,6 @@ type Config struct {
 	ServerPort                string `json:"server_port"`
 	KafkaBootstrap            string `json:"kafka_bootstrap"`
 	GroupId                   string `json:"group_id"`
-	ImportTypeTopic           string `json:"import_type_topic"`
-	PermissionsUrl            string `json:"permissions_url"`
 	DeviceRepoUrl             string `json:"device_repo_url"`
 	MongoUrl                  string `json:"mongo_url"`
 	MongoReplSet              bool   `json:"mongo_repl_set"` //set true if mongodb is configured as replication set or mongos and is able to handle transactions
@@ -43,7 +41,6 @@ type Config struct {
 	Validate                  bool   `json:"validate"`
 	UsersTopic                string `json:"users_topic"`
 	RepublishStartup          bool   `json:"republish_startup"`
-	PermissionsTopic          string `json:"permissions_topic"`
 	PermissionV2Url           string `json:"permissions_v2_url"`
 }
 
