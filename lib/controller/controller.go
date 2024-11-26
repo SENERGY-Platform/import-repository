@@ -23,6 +23,7 @@ import (
 	deviceRepo "github.com/SENERGY-Platform/device-repository/lib/client"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
 )
 
@@ -58,4 +59,29 @@ type Controller struct {
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 10*time.Second)
+}
+
+func (this *Controller) Migrate() error {
+	ctx, _ := getTimeoutContext()
+	importTypes, _, err := this.db.ListImportTypes(ctx, model.ImportTypeListOptions{})
+	if err != nil {
+		return err
+	}
+	for _, importType := range importTypes {
+		resource, err, _ := this.permV2Client.GetResource(permV2.InternalAdminToken, PermV2Topic, importType.Id)
+		if err != nil {
+			return err
+		}
+		resource.UserPermissions[importType.Owner] = permV2.PermissionsMap{
+			Read:         true,
+			Write:        true,
+			Execute:      true,
+			Administrate: true,
+		}
+		_, err, _ = this.permV2Client.SetPermission(permV2.InternalAdminToken, PermV2Topic, importType.Id, resource.ResourcePermissions)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

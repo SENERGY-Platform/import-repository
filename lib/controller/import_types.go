@@ -58,11 +58,6 @@ func (this *Controller) CreateImportType(importType model.ImportType, token jwt.
 }
 
 func (this *Controller) ReadImportType(id string, token jwt.Token) (result model.ImportType, err error, errCode int) {
-	err, code := this.CheckAccessToImportType(token, id, permV2Model.Read)
-	if err != nil {
-		result = model.ImportType{}
-		return result, err, code
-	}
 	ctx, _ := getTimeoutContext()
 	result, exists, err := this.db.GetImportType(ctx, id)
 	if err != nil {

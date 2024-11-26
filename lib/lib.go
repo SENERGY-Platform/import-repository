@@ -47,6 +47,12 @@ func StartWithPermv2Client(conf config.Config, ctx context.Context, wg *sync.Wai
 		return err
 	}
 
+	err = ctrl.Migrate()
+	if err != nil {
+		log.Println("ERROR: unable to migrate", err)
+		return err
+	}
+
 	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.UsersTopic}, conf.GroupId, consumer.Earliest,
 		listener.UsersListenerFactory(ctrl), consumer.HandleError, conf.Debug)
 	if err != nil {
