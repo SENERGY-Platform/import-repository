@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"net/http"
 	"time"
 
 	deviceRepo "github.com/SENERGY-Platform/device-repository/lib/client"
@@ -68,9 +69,16 @@ func (this *Controller) Migrate() error {
 		return err
 	}
 	for _, importType := range importTypes {
-		resource, err, _ := this.permV2Client.GetResource(permV2.InternalAdminToken, PermV2Topic, importType.Id)
-		if err != nil {
+		resource, err, code := this.permV2Client.GetResource(permV2.InternalAdminToken, PermV2Topic, importType.Id)
+		if err != nil && code != http.StatusNotFound {
 			return err
+		}
+		if code == http.StatusNotFound {
+			resource = permV2.Resource{
+				ResourcePermissions: permV2.ResourcePermissions{
+					UserPermissions: map[string]permV2.PermissionsMap{},
+				},
+			}
 		}
 		resource.UserPermissions[importType.Owner] = permV2.PermissionsMap{
 			Read:         true,
