@@ -41,7 +41,7 @@ type Config struct {
 	Validate                  bool   `json:"validate"`
 	UsersTopic                string `json:"users_topic"`
 	RepublishStartup          bool   `json:"republish_startup"`
-	PermissionV2Url           string `json:"permissions_v2_url"`
+	PermissionsV2Url          string `json:"permissions_v2_url"`
 }
 
 // loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)

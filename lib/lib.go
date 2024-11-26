@@ -31,7 +31,7 @@ import (
 )
 
 func Start(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (err error) {
-	return StartWithPermv2Client(conf, ctx, wg, permV2.New(conf.PermissionV2Url))
+	return StartWithPermv2Client(conf, ctx, wg, permV2.New(conf.PermissionsV2Url))
 }
 
 func StartWithPermv2Client(conf config.Config, ctx context.Context, wg *sync.WaitGroup, permV2Client permV2.Client) (err error) {
