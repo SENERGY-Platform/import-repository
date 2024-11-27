@@ -18,6 +18,7 @@ package controller
 
 import (
 	"errors"
+	"github.com/SENERGY-Platform/permissions-v2/pkg/client"
 	"net/http"
 
 	"github.com/SENERGY-Platform/import-repository/lib/model"
@@ -53,7 +54,27 @@ func (this *Controller) CreateImportType(importType model.ImportType, token jwt.
 	if err != nil {
 		return result, err, http.StatusInternalServerError
 	}
-
+	_, err, code = this.permV2Client.SetPermission(client.InternalAdminToken, PermV2Topic, importType.Id, client.ResourcePermissions{
+		UserPermissions: map[string]permV2Model.PermissionsMap{
+			importType.Owner: {
+				Read:         true,
+				Write:        true,
+				Execute:      true,
+				Administrate: true,
+			},
+		},
+		RolePermissions: map[string]permV2Model.PermissionsMap{
+			"admin": {
+				Read:         true,
+				Write:        true,
+				Execute:      true,
+				Administrate: true,
+			},
+		},
+	})
+	if err != nil {
+		return result, err, code
+	}
 	return importType, nil, http.StatusCreated
 }
 
@@ -139,6 +160,14 @@ func (this *Controller) SetImportType(importType model.ImportType, token jwt.Tok
 
 func (this *Controller) DeleteImportType(id string, token jwt.Token) (err error, errCode int) {
 	err, code := this.CheckAccessToImportType(token, id, permV2Model.Administrate)
+	if err != nil {
+		return err, code
+	}
+	return this.deleteImportType(id)
+}
+
+func (this *Controller) deleteImportType(id string) (err error, code int) {
+	err, code = this.permV2Client.RemoveResource(client.InternalAdminToken, PermV2Topic, id)
 	if err != nil {
 		return err, code
 	}

@@ -86,6 +86,12 @@ func (this *Controller) Migrate() error {
 			Execute:      true,
 			Administrate: true,
 		}
+		resource.RolePermissions["admin"] = permV2.PermissionsMap{
+			Read:         true,
+			Write:        true,
+			Execute:      true,
+			Administrate: true,
+		}
 		_, err, _ = this.permV2Client.SetPermission(permV2.InternalAdminToken, PermV2Topic, importType.Id, resource.ResourcePermissions)
 		if err != nil {
 			return err

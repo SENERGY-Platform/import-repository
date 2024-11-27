@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"sync"
@@ -63,7 +64,8 @@ func TestUserDelete(t *testing.T) {
 	ids := []string{}
 	t.Run("create import-types", initImportTypes(conf, user1, user2, &ids))
 
-	time.Sleep(30 * time.Second)
+	t.Run("check user1 before permission change", checkUserImportTypes(permv2Client, user1, ids[:10], ids))
+	t.Run("check user2 before permission change", checkUserImportTypes(permv2Client, user2, ids[10:], ids))
 
 	t.Run("change permissions", func(t *testing.T) {
 		for i := 0; i < 2; i++ {
@@ -106,11 +108,17 @@ func TestUserDelete(t *testing.T) {
 			}
 		}
 
-		for i := 10; i < 12; i++ {
+		for i := 8; i < 12; i++ {
 			id := ids[i]
 			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
 				UserPermissions: map[string]permV2.PermissionsMap{
-					user1.Sub: permV2.PermissionsMap{
+					user1.Sub: {
+						Read:         true,
+						Write:        true,
+						Execute:      true,
+						Administrate: true,
+					},
+					user2.Sub: {
 						Read:         true,
 						Write:        true,
 						Execute:      true,
@@ -124,7 +132,7 @@ func TestUserDelete(t *testing.T) {
 			}
 		}
 
-		for i := 12; i < 14; i++ {
+		for i := 16; i < 18; i++ {
 			id := ids[i]
 			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
 				UserPermissions: map[string]permV2.PermissionsMap{
@@ -146,8 +154,7 @@ func TestUserDelete(t *testing.T) {
 			}
 		}
 
-		// 10, 11, 12, 13, 14 for user1 rwxa
-		for i := 13; i < 15; i++ {
+		for i := 18; i < 20; i++ {
 			id := ids[i]
 			err = setPermission(permv2Client, id, permV2.ResourcePermissions{
 				UserPermissions: map[string]permV2.PermissionsMap{
@@ -166,10 +173,14 @@ func TestUserDelete(t *testing.T) {
 		}
 	})
 
-	time.Sleep(30 * time.Second)
-
-	t.Run("check user1 before delete", checkUserImportTypes(permv2Client, user1, ids[:15]))
-	t.Run("check user2 before delete", checkUserImportTypes(permv2Client, user2, append(append([]string{}, ids[:4]...), ids[10:]...)))
+	users1Expected := []string{}
+	users1Expected = append(users1Expected, ids[2:12]...)
+	users1Expected = append(users1Expected, ids[16:]...)
+	t.Run("check user1 before delete", checkUserImportTypes(permv2Client, user1, users1Expected, ids))
+	users2Expected := []string{}
+	users2Expected = append(users2Expected, ids[:4]...)
+	users2Expected = append(users2Expected, ids[8:18]...)
+	t.Run("check user2 before delete", checkUserImportTypes(permv2Client, user2, users2Expected, ids))
 
 	t.Run("delete user1", func(t *testing.T) {
 		kafkaConf := sarama.NewConfig()
@@ -203,8 +214,11 @@ func TestUserDelete(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	t.Run("check user1 after delete", checkUserImportTypes(permv2Client, user1, []string{}))
-	t.Run("check user2 after delete", checkUserImportTypes(permv2Client, user2, append(append(append([]string{}, ids[:4]...), ids[10:12]...), ids[14:]...)))
+	users2Expected = []string{}
+	users2Expected = append(users2Expected, ids[:4]...)
+	users2Expected = append(users2Expected, ids[8:16]...)
+	t.Run("check user1 after delete", checkUserImportTypes(permv2Client, user1, []string{}, ids))
+	t.Run("check user2 after delete", checkUserImportTypes(permv2Client, user2, users2Expected, ids))
 
 }
 
@@ -270,7 +284,7 @@ func setPermission(permv2Client permV2.Client, id string, permissions permV2.Res
 	return err
 }
 
-func checkUserImportTypes(permV2Client permV2.Client, token jwt.Token, expectedIdsOrig []string) func(t *testing.T) {
+func checkUserImportTypes(permV2Client permV2.Client, token jwt.Token, expectedIdsOrig []string, allIds []string) func(t *testing.T) {
 	return func(t *testing.T) {
 		expectedIds := []string{}
 		temp, err := json.Marshal(expectedIdsOrig)
@@ -289,11 +303,25 @@ func checkUserImportTypes(permV2Client permV2.Client, token jwt.Token, expectedI
 			t.Error(err)
 			return
 		}
+		if actualIds == nil {
+			actualIds = []string{}
+		}
 		sort.Strings(actualIds)
 		sort.Strings(expectedIds)
 		if !reflect.DeepEqual(actualIds, expectedIds) {
-			t.Error("\n", actualIds, "\n", expectedIds)
+			aIndexes := listToIndexList(actualIds, allIds)
+			eIndexes := listToIndexList(expectedIds, allIds)
+			sort.Ints(aIndexes)
+			sort.Ints(eIndexes)
+			t.Error("\na=", aIndexes, "\ne=", eIndexes)
 			return
 		}
 	}
+}
+
+func listToIndexList(list []string, allIds []string) (indexes []int) {
+	for _, id := range list {
+		indexes = append(indexes, slices.Index(allIds, id))
+	}
+	return indexes
 }

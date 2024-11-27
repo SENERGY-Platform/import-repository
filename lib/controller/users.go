@@ -21,28 +21,44 @@ import (
 )
 
 func (this *Controller) DeleteUser(userId string) error {
+	// if the count of import types becomes to big, we may want to list for all permissions separately, filtered by the deleted user
+	// eg:
+	// readIds, err, _ := this.permV2Client.ListAccessibleResourceIds(tokenOfUser, ..., permV2.Read)
+	// ids = append(ids, readIds...)
+	// writeIds, err, _ := this.permV2Client.ListAccessibleResourceIds(tokenOfUser, ..., permV2.Write)
+	// ids = append(ids, readIds...)
+	// ...
+	// importTypes, err, _ := this.permV2Client.ListResourcesWithAdminPermission(permV2.InternalAdminToken, PermV2Topic, permV2.ListOptions{Ids: ids})
 	importTypes, err, _ := this.permV2Client.ListResourcesWithAdminPermission(permV2.InternalAdminToken, PermV2Topic, permV2.ListOptions{})
 	if err != nil {
 		return err
 	}
 	for _, importType := range importTypes {
-		perm, ok := importType.UserPermissions[userId]
+		_, ok := importType.UserPermissions[userId]
 		if !ok {
 			continue // user has no rights to that import type
 		}
-		if !perm.Administrate {
-			continue // user has no administrate rights to that import type
-		}
-		delete(importType.UserPermissions, userId) // find any user beside this one
+
+		// remove user permissions
+		delete(importType.UserPermissions, userId)
+
+		//other admin exists?
 		found := false
 		for _, perm := range importType.UserPermissions {
 			if perm.Administrate {
 				found = true
+				break
 			}
 		}
-		if !found {
-			ctx, _ := getTimeoutContext()
-			err = this.db.RemoveImportType(ctx, importType.Id)
+
+		//no other admin user
+		if found {
+			_, err, _ = this.permV2Client.SetPermission(permV2.InternalAdminToken, PermV2Topic, importType.Id, importType.ResourcePermissions)
+			if err != nil {
+				return err
+			}
+		} else {
+			err, _ = this.deleteImportType(importType.Id)
 			if err != nil {
 				return err
 			}
