@@ -68,40 +68,6 @@ func (this *Mongo) CreateId() string {
 	return uuid.NewString()
 }
 
-func (this *Mongo) Transaction(ctx context.Context) (resultCtx context.Context, close func(success bool) error, err error) {
-	if !this.config.MongoReplSet {
-		return ctx, func(bool) error { return nil }, nil
-	}
-	session, err := this.client.StartSession()
-	if err != nil {
-		return nil, nil, err
-	}
-	err = session.StartTransaction()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	//create session context; callback is executed synchronously and the error is passed on as error of WithSession
-	_ = mongo.WithSession(ctx, session, func(sessionContext mongo.SessionContext) error {
-		resultCtx = sessionContext
-		return nil
-	})
-
-	return resultCtx, func(success bool) error {
-		defer session.EndSession(context.Background())
-		var err error
-		if success {
-			err = session.CommitTransaction(resultCtx)
-		} else {
-			err = session.AbortTransaction(resultCtx)
-		}
-		if err != nil {
-			log.Println("ERROR: unable to finish mongo transaction", err)
-		}
-		return err
-	}, nil
-}
-
 func (this *Mongo) ensureIndex(collection *mongo.Collection, indexname string, indexKey string, asc bool, unique bool) error {
 	ctx, _ := getTimeoutContext()
 	var direction int32 = -1

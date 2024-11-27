@@ -34,7 +34,6 @@ type Config struct {
 	GroupId                   string `json:"group_id"`
 	DeviceRepoUrl             string `json:"device_repo_url"`
 	MongoUrl                  string `json:"mongo_url"`
-	MongoReplSet              bool   `json:"mongo_repl_set"` //set true if mongodb is configured as replication set or mongos and is able to handle transactions
 	MongoTable                string `json:"mongo_table"`
 	MongoImportTypeCollection string `json:"mongo_import_type_collection"`
 	Debug                     bool   `json:"debug"`

@@ -123,7 +123,6 @@ func createTestEnv(ctx context.Context, wg *sync.WaitGroup) (permv2Client permV2
 		log.Println("ERROR: unable to load config: ", err)
 		return permv2Client, conf, err
 	}
-	conf.MongoReplSet = false
 	conf, err = NewDockerEnv(conf, ctx, wg)
 	if err != nil {
 		log.Println("ERROR: unable to create docker env", err)
