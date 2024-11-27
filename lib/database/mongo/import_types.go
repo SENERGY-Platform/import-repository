@@ -35,6 +35,34 @@ const nameFieldName = "Name"
 var idKey string
 var nameKey string
 
+type ImportTypeWithCriteria struct {
+	model.ImportType `bson:",inline" json:",inline"`
+	Criteria         []ImportTypeCriteria `json:"criteria" bson:"criteria"`
+}
+
+type ImportTypeCriteria struct {
+	FunctionId string `json:"function_id" bson:"function_id"`
+	AspectId   string `json:"aspect_id" bson:"aspect_id"`
+}
+
+func importTypeWithCriteria(importType model.ImportType) ImportTypeWithCriteria {
+	return ImportTypeWithCriteria{
+		ImportType: importType,
+		Criteria:   contentVariableToCertList(importType.Output),
+	}
+}
+
+func contentVariableToCertList(cv model.ContentVariable) []ImportTypeCriteria {
+	result := []ImportTypeCriteria{{
+		FunctionId: cv.FunctionId,
+		AspectId:   cv.AspectId,
+	}}
+	for _, sub := range cv.SubContentVariables {
+		result = append(result, contentVariableToCertList(sub)...)
+	}
+	return result
+}
+
 func init() {
 	var err error
 	idKey, err = getBsonFieldName(model.ImportType{}, idFieldName)
@@ -54,6 +82,29 @@ func init() {
 		}
 		return nil
 	})
+}
+
+func (this *Mongo) migrateImportTypeCriteria() error {
+	c, err := this.importTypeCollection().Find(context.Background(), bson.M{"criteria": bson.M{"$exists": false}})
+	if err != nil {
+		return err
+	}
+	defer c.Close(context.Background())
+	for c.Next(context.Background()) {
+		if c.Err() != nil {
+			return c.Err()
+		}
+		element := model.ImportType{}
+		err = c.Decode(&element)
+		if err != nil {
+			return err
+		}
+		err = this.SetImportType(context.Background(), element)
+		if err != nil {
+			return err
+		}
+	}
+	return c.Err()
 }
 
 func (this *Mongo) importTypeCollection() *mongo.Collection {
@@ -113,8 +164,20 @@ func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.Import
 		filter[nameKey] = bson.M{"$regex": escapedSearch, "$options": "i"}
 	}
 
-	//TODO: SNRGY-3572 filter by listOptions.Criteria
-	//	test with tests/list_test.go::TestList()
+	if len(listOptions.Criteria) > 0 {
+		and := []bson.M{}
+		for _, criteria := range listOptions.Criteria {
+			criteriaFilter := bson.M{}
+			if criteria.FunctionId != "" {
+				criteriaFilter["function_id"] = criteria.FunctionId
+			}
+			if len(criteria.AspectIds) > 0 {
+				criteriaFilter["aspect_id"] = bson.M{"$in": criteria.AspectIds}
+			}
+			and = append(and, bson.M{"criteria": bson.M{"$elemMatch": criteriaFilter}})
+		}
+		filter["$and"] = and
+	}
 
 	cursor, err := this.importTypeCollection().Find(ctx, filter, opt)
 	if err != nil {
@@ -123,6 +186,9 @@ func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.Import
 	err = cursor.All(ctx, &result)
 	if err != nil {
 		return result, total, err
+	}
+	if result == nil {
+		result = []model.ImportType{}
 	}
 	total, err = this.importTypeCollection().CountDocuments(ctx, filter)
 	if err != nil {
@@ -147,7 +213,8 @@ func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportTyp
 		}
 		importType.Configs[idx] = config
 	}
-	_, err := this.importTypeCollection().ReplaceOne(ctx, bson.M{idKey: importType.Id}, importType, options.Replace().SetUpsert(true))
+	withCriteria := importTypeWithCriteria(importType)
+	_, err := this.importTypeCollection().ReplaceOne(ctx, bson.M{idKey: importType.Id}, withCriteria, options.Replace().SetUpsert(true))
 	if err != nil {
 		return err
 	}

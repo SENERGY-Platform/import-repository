@@ -57,6 +57,10 @@ func New(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (*Mongo, e
 			return nil, err
 		}
 	}
+	err = db.migrateImportTypeCriteria()
+	if err != nil {
+		return db, err
+	}
 	return db, nil
 }
 
