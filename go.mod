@@ -6,7 +6,7 @@ toolchain go1.23.1
 
 require (
 	github.com/IBM/sarama v1.43.3
-	github.com/SENERGY-Platform/device-repository v0.1.44
+	github.com/SENERGY-Platform/device-repository v0.1.51
 	github.com/SENERGY-Platform/permissions-v2 v0.0.27
 	github.com/SENERGY-Platform/service-commons v0.0.0-20240813072046-91b3195dd8fc
 	github.com/golang-jwt/jwt v3.2.2+incompatible
