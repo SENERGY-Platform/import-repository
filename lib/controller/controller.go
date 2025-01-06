@@ -33,7 +33,7 @@ func New(config config.Config, db database.Database, permV2Client permV2.Client)
 		db:               db,
 		config:           config,
 		permV2Client:     permV2Client,
-		deviceRepoClient: deviceRepo.NewClient(config.DeviceRepoUrl),
+		deviceRepoClient: deviceRepo.NewClient(config.DeviceRepoUrl, nil),
 	}
 	_, err, _ = ctrl.permV2Client.SetTopic(permV2.InternalAdminToken, permV2.Topic{
 		Id: PermV2Topic,
