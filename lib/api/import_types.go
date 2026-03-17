@@ -18,29 +18,28 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
 func init() {
 	endpoints = append(endpoints, ImportTypesEndpoints)
 }
 
-func ImportTypesEndpoints(config config.Config, control Controller, router *httprouter.Router) {
+func ImportTypesEndpoints(config config.Config, control Controller, router *gin.Engine) {
 	resource := "/import-types"
 
-	router.GET(resource, func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		token, err := jwt.GetParsedToken(request)
+	router.GET(resource, func(c *gin.Context) {
+		token, err := jwt.GetParsedToken(c.Request)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
 
@@ -48,26 +47,26 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 			Limit:  100,
 			Offset: 0,
 		}
-		limitParam := request.URL.Query().Get("limit")
+		limitParam := c.Query("limit")
 		if limitParam != "" {
 			listOptions.Limit, err = strconv.ParseInt(limitParam, 10, 64)
 		}
 		if err != nil {
-			http.Error(writer, "unable to parse limit:"+err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, errors.New("unable to parse limit"), err))
 			return
 		}
 
-		offsetParam := request.URL.Query().Get("offset")
+		offsetParam := c.Query("offset")
 		if offsetParam != "" {
 			listOptions.Offset, err = strconv.ParseInt(offsetParam, 10, 64)
 		}
 		if err != nil {
-			http.Error(writer, "unable to parse offset:"+err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, errors.New("unable to parse offset"), err))
 			return
 		}
 
-		idsParam := request.URL.Query().Get("ids")
-		if request.URL.Query().Has("ids") {
+		idsParam := c.Query("ids")
+		if _, hasIds := c.GetQuery("ids"); hasIds {
 			if idsParam != "" {
 				listOptions.Ids = strings.Split(strings.TrimSpace(idsParam), ",")
 			} else {
@@ -75,122 +74,103 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 			}
 		}
 
-		criteria := request.URL.Query().Get("criteria")
+		criteria := c.Query("criteria")
 		if criteria != "" {
 			listOptions.Criteria = []model.ImportTypeFilterCriteria{}
 			err = json.Unmarshal([]byte(criteria), &listOptions.Criteria)
 			if err != nil {
-				http.Error(writer, err.Error(), http.StatusBadRequest)
+				_ = c.Error(errors.Join(model.ErrBadRequest, err))
 				return
 			}
 		}
 
-		listOptions.Search = request.URL.Query().Get("search")
-		listOptions.SortBy = request.URL.Query().Get("sort")
+		listOptions.Search = c.Query("search")
+		listOptions.SortBy = c.Query("sort")
 		if listOptions.SortBy == "" {
 			listOptions.SortBy = "name.asc"
 		}
 
 		result, total, err, errCode := control.ListImportTypes(token, listOptions)
 		if err != nil {
-			http.Error(writer, err.Error(), errCode)
+			_ = c.Error(errors.Join(model.GetError(errCode), err))
 			return
 		}
-		writer.Header().Set("X-Total-Count", strconv.FormatInt(total, 10))
-		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-		err = json.NewEncoder(writer).Encode(result)
-		if err != nil {
-			log.Logger.Error("unable to encode response", attributes.ErrorKey, err)
-		}
-		return
+		c.Header("X-Total-Count", strconv.FormatInt(total, 10))
+		c.JSON(http.StatusOK, result)
 	})
 
-	router.GET(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		id := params.ByName("id")
-		token, err := jwt.GetParsedToken(request)
+	router.GET(resource+"/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		token, err := jwt.GetParsedToken(c.Request)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
 		result, err, errCode := control.ReadImportType(id, token)
 		if err != nil {
-			http.Error(writer, err.Error(), errCode)
+			_ = c.Error(errors.Join(model.GetError(errCode), err))
 			return
 		}
-		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-		err = json.NewEncoder(writer).Encode(result)
-		if err != nil {
-			log.Logger.Error("unable to encode response", attributes.ErrorKey, err)
-		}
-		return
+		c.JSON(http.StatusOK, result)
 	})
 
-	router.DELETE(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		id := params.ByName("id")
-		token, err := jwt.GetParsedToken(request)
+	router.DELETE(resource+"/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		token, err := jwt.GetParsedToken(c.Request)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
 		err, errCode := control.DeleteImportType(id, token)
 		if err != nil {
-			http.Error(writer, err.Error(), errCode)
+			_ = c.Error(errors.Join(model.GetError(errCode), err))
 			return
 		}
-		writer.WriteHeader(errCode)
-		return
+		c.Status(errCode)
 	})
 
-	router.PUT(resource+"/:id", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		id := params.ByName("id")
-		token, err := jwt.GetParsedToken(request)
+	router.PUT(resource+"/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		token, err := jwt.GetParsedToken(c.Request)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
 		importType := model.ImportType{}
-		err = json.NewDecoder(request.Body).Decode(&importType)
+		err = c.ShouldBind(&importType)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
-
 		if id != importType.Id {
-			http.Error(writer, "IDs don't match", http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, errors.New("IDs don't match")))
 			return
 		}
 		err, code := control.SetImportType(importType, token)
 		if err != nil {
-			http.Error(writer, err.Error(), code)
+			_ = c.Error(errors.Join(model.GetError(code), err))
 			return
 		}
-		writer.WriteHeader(http.StatusOK)
+		c.Status(http.StatusOK)
 	})
 
-	router.POST(resource, func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	router.POST(resource, func(c *gin.Context) {
 		importType := model.ImportType{}
-		token, err := jwt.GetParsedToken(request)
+		token, err := jwt.GetParsedToken(c.Request)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
-		err = json.NewDecoder(request.Body).Decode(&importType)
+		err = c.ShouldBind(&importType)
 		if err != nil {
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
 		result, err, code := control.CreateImportType(importType, token)
 		if err != nil {
-			http.Error(writer, err.Error(), code)
+			_ = c.Error(errors.Join(model.GetError(code), err))
 			return
 		}
-		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
-		writer.WriteHeader(code)
-		err = json.NewEncoder(writer).Encode(result)
-		if err != nil {
-			log.Logger.Error("unable to encode response", attributes.ErrorKey, err)
-			return
-		}
-		return
+		c.JSON(code, result)
 	})
 }

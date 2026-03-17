@@ -21,32 +21,42 @@ import (
 	"reflect"
 	"runtime"
 
+	gin_mw "github.com/SENERGY-Platform/gin-middleware"
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
-	"github.com/SENERGY-Platform/import-repository/lib/api/util"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/log"
-	"github.com/julienschmidt/httprouter"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/gin-contrib/requestid"
+	"github.com/gin-gonic/gin"
 )
 
-var endpoints = []func(config config.Config, control Controller, router *httprouter.Router){}
+var endpoints = []func(config config.Config, control Controller, router *gin.Engine){}
 
 func Start(config config.Config, control Controller) (err error) {
 	log.Logger.Info("start api")
-	router := httprouter.New()
-	log.Logger.Info("add heart beat endpoint")
-	router.GET("/", func(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-		writer.WriteHeader(http.StatusOK)
-	})
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.Use(
+		gin_mw.StructLoggerHandlerWithDefaultGenerators(
+			log.Logger.With(attributes.LogRecordTypeKey, attributes.HttpAccessLogRecordTypeVal),
+			attributes.Provider,
+			[]string{},
+			nil,
+		),
+		requestid.New(requestid.WithCustomHeaderStrKey("X-Request-ID")),
+		gin_mw.ErrorHandler(model.GetStatusCode, ", "),
+		gin_mw.StructRecoveryHandler(log.Logger, gin_mw.DefaultRecoveryFunc),
+	)
 	for _, e := range endpoints {
 		log.Logger.Info("add endpoint", "name", runtime.FuncForPC(reflect.ValueOf(e).Pointer()).Name())
 		e(config, control, router)
 	}
-	log.Logger.Info("add logging and cors")
-	corsHandler := util.NewCors(router)
-	logger := util.NewLogger(corsHandler)
+	router.GET("/", func(ctx *gin.Context) {
+		ctx.Status(http.StatusOK)
+	})
 	log.Logger.Info("listen on port", "port", config.ServerPort)
 	go func() {
-		err := http.ListenAndServe(":"+config.ServerPort, logger)
+		err := http.ListenAndServe(":"+config.ServerPort, router)
 		if err != nil {
 			log.Logger.Error("unable to listen on port", "port", config.ServerPort, attributes.ErrorKey, err)
 		}
