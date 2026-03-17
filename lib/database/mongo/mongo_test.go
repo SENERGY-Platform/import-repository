@@ -18,20 +18,23 @@ package mongo
 
 import (
 	"context"
-	"github.com/SENERGY-Platform/import-repository/lib/config"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/SENERGY-Platform/import-repository/lib/testutils/docker"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"reflect"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/SENERGY-Platform/import-repository/lib/testutils/docker"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func TestMigration(t *testing.T) {
+	log.InitForTest()
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
