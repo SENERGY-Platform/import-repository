@@ -19,16 +19,18 @@ package mongo
 import (
 	"context"
 	"errors"
+	"reflect"
+	"sync"
+	"time"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"reflect"
-	"sync"
-	"time"
 )
 
 type Mongo struct {
@@ -99,7 +101,10 @@ func (this *Mongo) ensureCompoundIndex(collection *mongo.Collection, indexname s
 }
 
 func (this *Mongo) Disconnect() {
-	log.Println(this.client.Disconnect(context.Background()))
+	err := this.client.Disconnect(context.Background())
+	if err != nil {
+		log.Logger.Error("unable to disconnect mongo client", attributes.ErrorKey, err)
+	}
 }
 
 func getBsonFieldName(obj interface{}, fieldName string) (bsonName string, err error) {

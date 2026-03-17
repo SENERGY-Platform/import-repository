@@ -20,13 +20,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
+	"strings"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"regexp"
-	"strings"
 )
 
 const idFieldName = "Id"
@@ -67,11 +69,13 @@ func init() {
 	var err error
 	idKey, err = getBsonFieldName(model.ImportType{}, idFieldName)
 	if err != nil {
-		log.Fatal(err)
+		log.Logger.Error("unable to get bson field name for import type id", attributes.ErrorKey, err)
+		panic(err)
 	}
 	nameKey, err = getBsonFieldName(model.ImportType{}, nameFieldName)
 	if err != nil {
-		log.Fatal(err)
+		log.Logger.Error("unable to get bson field name for import type name", attributes.ErrorKey, err)
+		panic(err)
 	}
 
 	CreateCollections = append(CreateCollections, func(db *Mongo) error {

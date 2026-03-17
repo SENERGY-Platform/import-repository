@@ -2,11 +2,13 @@ package docker
 
 import (
 	"context"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"log"
 	"strconv"
 	"sync"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 func Kafka(ctx context.Context, wg *sync.WaitGroup, zookeeperUrl string) (kafkaUrl string, err error) {
@@ -23,12 +25,12 @@ func Kafka(ctx context.Context, wg *sync.WaitGroup, zookeeperUrl string) (kafkaU
 		return kafkaUrl, err
 	}
 	kafkaUrl = hostIp + ":" + strconv.Itoa(kafkaport)
-	log.Println("host ip: ", hostIp)
-	log.Println("host port: ", kafkaport)
-	log.Println("kafkaUrl url: ", kafkaUrl)
+	log.Logger.Debug("host ip", "value", hostIp)
+	log.Logger.Debug("host port", "value", kafkaport)
+	log.Logger.Debug("kafka url", "value", kafkaUrl)
 	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image: "bitnami/kafka:3.4.0-debian-11-r21",
+			Image: "bitnamilegacy/kafka:3.4.0-debian-11-r21",
 			Tmpfs: map[string]string{},
 			WaitingFor: wait.ForAll(
 				wait.ForLog("INFO Awaiting socket connections on"),
@@ -54,20 +56,25 @@ func Kafka(ctx context.Context, wg *sync.WaitGroup, zookeeperUrl string) (kafkaU
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
-		log.Println("DEBUG: remove container kafka", c.Terminate(context.Background()))
+		err := c.Terminate(context.Background())
+		if err != nil {
+			log.Logger.Debug("remove container kafka failed", attributes.ErrorKey, err)
+		} else {
+			log.Logger.Debug("remove container kafka")
+		}
 	}()
 
 	containerPort, err := c.MappedPort(ctx, "9092/tcp")
 	if err != nil {
 		return kafkaUrl, err
 	}
-	log.Println("KAFKA_TEST: container-port", containerPort, kafkaport)
+	log.Logger.Debug("kafka test container port", "container_port", containerPort.Port(), "host_port", kafkaport)
 
 	return kafkaUrl, err
 }
 
 func Zookeeper(ctx context.Context, wg *sync.WaitGroup) (hostPort string, ipAddress string, err error) {
-	log.Println("start zookeeper")
+	log.Logger.Info("start zookeeper")
 	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image: "wurstmeister/zookeeper:latest",
@@ -88,7 +95,12 @@ func Zookeeper(ctx context.Context, wg *sync.WaitGroup) (hostPort string, ipAddr
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
-		log.Println("DEBUG: remove container zookeeper", c.Terminate(context.Background()))
+		err := c.Terminate(context.Background())
+		if err != nil {
+			log.Logger.Debug("remove container zookeeper failed", attributes.ErrorKey, err)
+		} else {
+			log.Logger.Debug("remove container zookeeper")
+		}
 	}()
 
 	ipAddress, err = c.ContainerIP(ctx)

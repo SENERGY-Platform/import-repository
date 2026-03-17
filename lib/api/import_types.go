@@ -18,12 +18,13 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 	"github.com/julienschmidt/httprouter"
@@ -99,7 +100,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		err = json.NewEncoder(writer).Encode(result)
 		if err != nil {
-			log.Println("ERROR: unable to encode response", err)
+			log.Logger.Error("unable to encode response", attributes.ErrorKey, err)
 		}
 		return
 	})
@@ -119,7 +120,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 		writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 		err = json.NewEncoder(writer).Encode(result)
 		if err != nil {
-			log.Println("ERROR: unable to encode response", err)
+			log.Logger.Error("unable to encode response", attributes.ErrorKey, err)
 		}
 		return
 	})
@@ -187,7 +188,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *http
 		writer.WriteHeader(code)
 		err = json.NewEncoder(writer).Encode(result)
 		if err != nil {
-			log.Println("ERROR: unable to encode response", err)
+			log.Logger.Error("unable to encode response", attributes.ErrorKey, err)
 			return
 		}
 		return

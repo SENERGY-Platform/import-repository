@@ -19,10 +19,12 @@ package docker
 import (
 	"context"
 	"errors"
-	"github.com/testcontainers/testcontainers-go/wait"
-	"log"
 	"net"
 	"time"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
+	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 func GetFreePort() (int, error) {
@@ -53,10 +55,10 @@ func retry(timeout time.Duration, f func() error) (err error) {
 	for i := int64(1); err != nil && time.Since(start) < timeout; i++ {
 		err = f()
 		if err != nil {
-			log.Println("ERROR: :", err)
+			log.Logger.Error("retry operation failed", attributes.ErrorKey, err)
 			wait := time.Duration(i) * time.Second
 			if time.Since(start)+wait < timeout {
-				log.Println("ERROR: retry after:", wait.String())
+				log.Logger.Warn("retry after", "duration", wait.String())
 				time.Sleep(wait)
 			} else {
 				time.Sleep(time.Since(start) + wait - timeout)

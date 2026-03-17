@@ -12,5 +12,6 @@
     "group_id": "import-repository",
     "validate": false,
     "republish_startup": false,
-    "debug": true
+    "debug": true,
+    "log_handler": "json"
 }

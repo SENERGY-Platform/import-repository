@@ -18,14 +18,16 @@ package docker
 
 import (
 	"context"
+	"sync"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"log"
-	"sync"
 )
 
 func MongoDB(ctx context.Context, wg *sync.WaitGroup) (hostport string, containerip string, err error) {
-	log.Println("start mongo")
+	log.Logger.Info("start mongo")
 	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "mongo:4.1.11",
@@ -46,7 +48,12 @@ func MongoDB(ctx context.Context, wg *sync.WaitGroup) (hostport string, containe
 	go func() {
 		defer wg.Done()
 		<-ctx.Done()
-		log.Println("DEBUG: remove container mongo", c.Terminate(context.Background()))
+		err := c.Terminate(context.Background())
+		if err != nil {
+			log.Logger.Debug("remove container mongo failed", attributes.ErrorKey, err)
+		} else {
+			log.Logger.Debug("remove container mongo")
+		}
 	}()
 
 	containerip, err = c.ContainerIP(ctx)

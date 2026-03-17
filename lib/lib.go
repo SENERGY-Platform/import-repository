@@ -18,13 +18,14 @@ package lib
 
 import (
 	"context"
-	"log"
 	"sync"
 
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib/api"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/controller"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/source/consumer"
 	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
@@ -37,31 +38,31 @@ func Start(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (err err
 func StartWithPermv2Client(conf config.Config, ctx context.Context, wg *sync.WaitGroup, permV2Client permV2.Client) (err error) {
 	db, err := database.New(conf, ctx, wg)
 	if err != nil {
-		log.Println("ERROR: unable to connect to database", err)
+		log.Logger.Error("unable to connect to database", attributes.ErrorKey, err)
 		return err
 	}
 
 	ctrl, err := controller.New(conf, db, permV2Client)
 	if err != nil {
-		log.Println("ERROR: unable to start control", err)
+		log.Logger.Error("unable to start control", attributes.ErrorKey, err)
 		return err
 	}
 
 	err = ctrl.Migrate()
 	if err != nil {
-		log.Println("ERROR: unable to migrate", err)
+		log.Logger.Error("unable to migrate", attributes.ErrorKey, err)
 		return err
 	}
 
 	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.UsersTopic}, conf.GroupId, consumer.Earliest,
 		listener.UsersListenerFactory(ctrl), consumer.HandleError, conf.Debug)
 	if err != nil {
-		log.Println("WARNING: unable to start source, retrying periodically...", err)
+		log.Logger.Warn("unable to start source, retrying periodically...", attributes.ErrorKey, err)
 	}
 
 	err = api.Start(conf, ctrl)
 	if err != nil {
-		log.Println("ERROR: unable to start api", err)
+		log.Logger.Error("unable to start api", attributes.ErrorKey, err)
 		return err
 	}
 

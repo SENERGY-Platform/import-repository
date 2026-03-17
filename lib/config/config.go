@@ -41,6 +41,7 @@ type Config struct {
 	UsersTopic                string `json:"users_topic"`
 	RepublishStartup          bool   `json:"republish_startup"`
 	PermissionsV2Url          string `json:"permissions_v2_url"`
+	LogHandler                string `json:"log_handler"`
 }
 
 // loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"io/ioutil"
 	"net/http"
@@ -35,6 +36,7 @@ import (
 const name = "import-type-name"
 
 func TestImportTypesIntegration(t *testing.T) {
+	log.InitForTest()
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())

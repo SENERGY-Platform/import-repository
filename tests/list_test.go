@@ -18,14 +18,17 @@ package tests
 
 import (
 	"context"
-	"github.com/SENERGY-Platform/import-repository/lib/client"
-	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"reflect"
 	"sync"
 	"testing"
+
+	"github.com/SENERGY-Platform/import-repository/lib/client"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
+	"github.com/SENERGY-Platform/import-repository/lib/model"
 )
 
 func TestList(t *testing.T) {
+	log.InitForTest()
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())

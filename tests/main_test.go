@@ -24,15 +24,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/testutils/docker"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
@@ -42,16 +43,18 @@ var userjwt jwt.Token
 var userjwt2 jwt.Token
 
 func init() {
+	log.InitForTest()
+
 	var err error
 
 	userjwt, err = jwt.Parse("Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIzaUtabW9aUHpsMmRtQnBJdS1vSkY4ZVVUZHh4OUFIckVOcG5CcHM5SjYwIn0.eyJqdGkiOiJiOGUyNGZkNy1jNjJlLTRhNWQtOTQ4ZC1mZGI2ZWVkM2JmYzYiLCJleHAiOjE1MzA1MzIwMzIsIm5iZiI6MCwiaWF0IjoxNTMwNTI4NDMyLCJpc3MiOiJodHRwczovL2F1dGguc2VwbC5pbmZhaS5vcmcvYXV0aC9yZWFsbXMvbWFzdGVyIiwiYXVkIjoiZnJvbnRlbmQiLCJzdWIiOiJkZDY5ZWEwZC1mNTUzLTQzMzYtODBmMy03ZjQ1NjdmODVjN2IiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJmcm9udGVuZCIsIm5vbmNlIjoiMjJlMGVjZjgtZjhhMS00NDQ1LWFmMjctNGQ1M2JmNWQxOGI5IiwiYXV0aF90aW1lIjoxNTMwNTI4NDIzLCJzZXNzaW9uX3N0YXRlIjoiMWQ3NWE5ODQtNzM1OS00MWJlLTgxYjktNzMyZDgyNzRjMjNlIiwiYWNyIjoiMCIsImFsbG93ZWQtb3JpZ2lucyI6WyIqIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJjcmVhdGUtcmVhbG0iLCJhZG1pbiIsImRldmVsb3BlciIsInVtYV9hdXRob3JpemF0aW9uIiwidXNlciJdfSwicmVzb3VyY2VfYWNjZXNzIjp7Im1hc3Rlci1yZWFsbSI6eyJyb2xlcyI6WyJ2aWV3LWlkZW50aXR5LXByb3ZpZGVycyIsInZpZXctcmVhbG0iLCJtYW5hZ2UtaWRlbnRpdHktcHJvdmlkZXJzIiwiaW1wZXJzb25hdGlvbiIsImNyZWF0ZS1jbGllbnQiLCJtYW5hZ2UtdXNlcnMiLCJxdWVyeS1yZWFsbXMiLCJ2aWV3LWF1dGhvcml6YXRpb24iLCJxdWVyeS1jbGllbnRzIiwicXVlcnktdXNlcnMiLCJtYW5hZ2UtZXZlbnRzIiwibWFuYWdlLXJlYWxtIiwidmlldy1ldmVudHMiLCJ2aWV3LXVzZXJzIiwidmlldy1jbGllbnRzIiwibWFuYWdlLWF1dGhvcml6YXRpb24iLCJtYW5hZ2UtY2xpZW50cyIsInF1ZXJ5LWdyb3VwcyJdfSwiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwicm9sZXMiOlsidW1hX2F1dGhvcml6YXRpb24iLCJhZG1pbiIsImNyZWF0ZS1yZWFsbSIsImRldmVsb3BlciIsInVzZXIiLCJvZmZsaW5lX2FjY2VzcyJdLCJuYW1lIjoiZGYgZGZmZmYiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzZXBsIiwiZ2l2ZW5fbmFtZSI6ImRmIiwiZmFtaWx5X25hbWUiOiJkZmZmZiIsImVtYWlsIjoic2VwbEBzZXBsLmRlIn0.eOwKV7vwRrWr8GlfCPFSq5WwR_p-_rSJURXCV1K7ClBY5jqKQkCsRL2V4YhkP1uS6ECeSxF7NNOLmElVLeFyAkvgSNOUkiuIWQpMTakNKynyRfH0SrdnPSTwK2V1s1i4VjoYdyZWXKNjeT2tUUX9eCyI5qOf_Dzcai5FhGCSUeKpV0ScUj5lKrn56aamlW9IdmbFJ4VwpQg2Y843Vc0TqpjK9n_uKwuRcQd9jkKHkbwWQ-wyJEbFWXHjQ6LnM84H0CQ2fgBqPPfpQDKjGSUNaCS-jtBcbsBAWQSICwol95BuOAqVFMucx56Wm-OyQOuoQ1jaLt2t-Uxtr-C9wKJWHQ")
 	if err != nil {
-		log.Println("ERROR:", err)
+		log.Logger.Error("unable to parse first jwt", attributes.ErrorKey, err)
 		debug.PrintStack()
 	}
 	userjwt2, err = jwt.Parse("Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyMzMzMzMzfQ.DYBskZCLd-xyDqYkyesX-jBhwPJbHDoLhc83Q2H_bGM")
 	if err != nil {
-		log.Println("ERROR:", err)
+		log.Logger.Error("unable to parse second jwt", attributes.ErrorKey, err)
 		debug.PrintStack()
 	}
 }
@@ -120,23 +123,23 @@ func jwtget(jwt jwt.Token, url string) (resp *http.Response, err error) {
 func createTestEnv(ctx context.Context, wg *sync.WaitGroup) (permv2Client permV2.Client, conf config.Config, err error) {
 	conf, err = config.Load("../config.json")
 	if err != nil {
-		log.Println("ERROR: unable to load config: ", err)
+		log.Logger.Error("unable to load config", attributes.ErrorKey, err)
 		return permv2Client, conf, err
 	}
 	conf, err = NewDockerEnv(conf, ctx, wg)
 	if err != nil {
-		log.Println("ERROR: unable to create docker env", err)
+		log.Logger.Error("unable to create docker env", attributes.ErrorKey, err)
 		return permv2Client, conf, err
 	}
 	time.Sleep(1 * time.Second)
 	permv2Client, err = permV2.NewTestClient(ctx)
 	if err != nil {
-		log.Println("ERROR: unable to permv2 test client", err)
+		log.Logger.Error("unable to create permv2 test client", attributes.ErrorKey, err)
 		return permv2Client, conf, err
 	}
 	err = lib.StartWithPermv2Client(conf, ctx, wg, permv2Client)
 	if err != nil {
-		log.Println("ERROR: unable to connect to database", err)
+		log.Logger.Error("unable to connect to database", attributes.ErrorKey, err)
 		return permv2Client, conf, err
 	}
 	time.Sleep(10 * time.Second)
@@ -148,7 +151,7 @@ func NewDockerEnv(startConfig config.Config, ctx context.Context, wg *sync.WaitG
 
 	whPort, err := docker.GetFreePort()
 	if err != nil {
-		log.Println("unable to find free port", err)
+		log.Logger.Error("unable to find free port", attributes.ErrorKey, err)
 		return config, err
 	}
 	config.ServerPort = strconv.Itoa(whPort)

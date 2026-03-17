@@ -19,13 +19,16 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/SENERGY-Platform/import-repository/lib"
-	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/import-repository/lib"
+	"github.com/SENERGY-Platform/import-repository/lib/config"
+	_log "github.com/SENERGY-Platform/import-repository/lib/log"
 )
 
 func main() {
@@ -37,18 +40,20 @@ func main() {
 		log.Fatal("ERROR: unable to load config", err)
 	}
 
+	_log.Init(conf)
 	ctx, cancel := context.WithCancel(context.Background())
 	wg := &sync.WaitGroup{}
 
 	err = lib.Start(conf, ctx, wg)
 	if err != nil {
+		_log.Logger.Error("unable to start service", attributes.ErrorKey, err)
 		log.Fatal(err)
 	}
 
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	sig := <-shutdown
-	log.Println("received shutdown signal", sig)
+	_log.Logger.Info("shutdown signal received", "signal", sig)
 	cancel()
 	wg.Wait() //wait for clean
 }

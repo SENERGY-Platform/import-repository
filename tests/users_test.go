@@ -30,6 +30,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/controller"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
@@ -37,6 +38,7 @@ import (
 )
 
 func TestUserDelete(t *testing.T) {
+	log.InitForTest()
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 	ctx, cancel := context.WithCancel(context.Background())
