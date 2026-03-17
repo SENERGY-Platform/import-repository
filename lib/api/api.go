@@ -32,6 +32,13 @@ import (
 
 var endpoints = []func(config config.Config, control Controller, router *gin.Engine){}
 
+// Start godoc
+// @title Import Repository API
+// @description Repository to store metadata about import types.
+// @BasePath /
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
 func Start(config config.Config, control Controller) (err error) {
 	log.Logger.Info("start api")
 	gin.SetMode(gin.ReleaseMode)

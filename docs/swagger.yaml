@@ -1,0 +1,305 @@
+basePath: /
+definitions:
+  model.ContentVariable:
+    properties:
+      aspect_id:
+        type: string
+      characteristic_id:
+        type: string
+      function_id:
+        type: string
+      name:
+        type: string
+      sub_content_variables:
+        items:
+          $ref: '#/definitions/model.ContentVariable'
+        type: array
+      type:
+        $ref: '#/definitions/model.Type'
+      use_as_tag:
+        type: boolean
+    type: object
+  model.ImportConfig:
+    properties:
+      default_value: {}
+      description:
+        type: string
+      name:
+        type: string
+      type:
+        $ref: '#/definitions/model.Type'
+    type: object
+  model.ImportType:
+    properties:
+      configs:
+        items:
+          $ref: '#/definitions/model.ImportConfig'
+        type: array
+      cost:
+        type: integer
+      default_restart:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      output:
+        $ref: '#/definitions/model.ContentVariable'
+      owner:
+        type: string
+    type: object
+  model.Type:
+    enum:
+    - https://schema.org/Text
+    - https://schema.org/Integer
+    - https://schema.org/Float
+    - https://schema.org/Boolean
+    - https://schema.org/ItemList
+    - https://schema.org/StructuredValue
+    type: string
+    x-enum-varnames:
+    - String
+    - Integer
+    - Float
+    - Boolean
+    - List
+    - Structure
+info:
+  contact: {}
+  description: Repository to store metadata about import types.
+  title: Import Repository API
+paths:
+  /doc:
+    get:
+      description: Returns the generated Swagger document for this service.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get OpenAPI document
+      tags:
+      - documentation
+  /import-types:
+    get:
+      description: Returns import types visible to the caller. If `ids` is provided,
+        pagination is ignored.
+      parameters:
+      - default: 100
+        description: Maximum number of results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Result offset
+        in: query
+        name: offset
+        type: integer
+      - description: Comma-separated import type ids
+        in: query
+        name: ids
+        type: string
+      - description: JSON-encoded filter criteria array
+        in: query
+        name: criteria
+        type: string
+      - description: Free-text search term
+        in: query
+        name: search
+        type: string
+      - default: name.asc
+        description: Sort order
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          headers:
+            X-Total-Count:
+              description: Total number of matching import types
+              type: integer
+          schema:
+            items:
+              $ref: '#/definitions/model.ImportType'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: List import types
+      tags:
+      - import-types
+    post:
+      consumes:
+      - application/json
+      description: Creates a new import type.
+      parameters:
+      - description: Import type payload
+        in: body
+        name: importType
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImportType'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ImportType'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: Create import type
+      tags:
+      - import-types
+  /import-types/{id}:
+    delete:
+      description: Deletes an import type by id.
+      parameters:
+      - description: Import type id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: Delete import type
+      tags:
+      - import-types
+    get:
+      description: Returns a single import type by id.
+      parameters:
+      - description: Import type id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ImportType'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: Get import type
+      tags:
+      - import-types
+    put:
+      consumes:
+      - application/json
+      description: Replaces an import type. The request body id must match the path
+        id.
+      parameters:
+      - description: Import type id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Full import type payload
+        in: body
+        name: importType
+        required: true
+        schema:
+          $ref: '#/definitions/model.ImportType'
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: Update import type
+      tags:
+      - import-types
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
