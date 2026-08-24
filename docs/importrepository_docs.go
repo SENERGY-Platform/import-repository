@@ -3,7 +3,7 @@ package docs
 
 import "github.com/swaggo/swag"
 
-const docTemplate = `{
+const docTemplateimportrepository = `{
     "schemes": {{ marshal .Schemes }},
     "swagger": "2.0",
     "info": {
@@ -469,20 +469,20 @@ const docTemplate = `{
     }
 }`
 
-// SwaggerInfo holds exported Swagger Info so clients can modify it
-var SwaggerInfo = &swag.Spec{
+// SwaggerInfoimportrepository holds exported Swagger Info so clients can modify it
+var SwaggerInfoimportrepository = &swag.Spec{
 	Version:          "",
 	Host:             "",
 	BasePath:         "/",
 	Schemes:          []string{},
 	Title:            "Import Repository API",
 	Description:      "Repository to store metadata about import types.",
-	InfoInstanceName: "swagger",
-	SwaggerTemplate:  docTemplate,
+	InfoInstanceName: "importrepository",
+	SwaggerTemplate:  docTemplateimportrepository,
 	LeftDelim:        "{{",
 	RightDelim:       "}}",
 }
 
 func init() {
-	swag.Register(SwaggerInfo.InstanceName(), SwaggerInfo)
+	swag.Register(SwaggerInfoimportrepository.InstanceName(), SwaggerInfoimportrepository)
 }

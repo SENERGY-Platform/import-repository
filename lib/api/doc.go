@@ -36,7 +36,7 @@ func init() {
 
 type ErrorResponse string
 
-//go:generate go run github.com/swaggo/swag/cmd/swag@v1.16.3 init -o ../../docs --parseDependency -d .. -g api/api.go
+//go:generate go run github.com/swaggo/swag/cmd/swag@v1.16.3 init --instanceName importrepository -o ../../docs --parseDependency -d .. -g api/api.go
 func DocEndpoint(config config.Config, control Controller, router *gin.Engine) {
 	router.GET("/doc", swaggerDocHandler)
 }
@@ -50,7 +50,7 @@ func DocEndpoint(config config.Config, control Controller, router *gin.Engine) {
 // @Failure 500 {string} ErrorResponse
 // @Router /doc [get]
 func swaggerDocHandler(c *gin.Context) {
-	doc, err := swag.ReadDoc()
+	doc, err := swag.ReadDoc("importrepository")
 	if err != nil {
 		_ = c.Error(errors.Join(err, model.ErrInternalServerError))
 		return
