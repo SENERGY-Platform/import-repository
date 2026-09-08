@@ -18,6 +18,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/json"
 	"reflect"
 	"slices"
 	"strings"
@@ -169,22 +170,10 @@ func TestMigration(t *testing.T) {
 				return
 			}
 			expected := []ImportTypeWithCriteria{
-				{
-					ImportType: it1,
-					Criteria:   contentVariableToCertList(it1.Output),
-				},
-				{
-					ImportType: it2,
-					Criteria:   contentVariableToCertList(it2.Output),
-				},
-				{
-					ImportType: it3,
-					Criteria:   contentVariableToCertList(it3.Output),
-				},
-				{
-					ImportType: itNone,
-					Criteria:   contentVariableToCertList(itNone.Output),
-				},
+				migratedImportType(t, it1),
+				migratedImportType(t, it2),
+				migratedImportType(t, it3),
+				migratedImportType(t, itNone),
 			}
 			slices.SortFunc(expected, func(a, b ImportTypeWithCriteria) int {
 				return strings.Compare(a.ImportType.Id, b.ImportType.Id)
@@ -222,22 +211,10 @@ func TestMigration(t *testing.T) {
 				return
 			}
 			expected := []ImportTypeWithCriteria{
-				{
-					ImportType: it1,
-					Criteria:   contentVariableToCertList(it1.Output),
-				},
-				{
-					ImportType: it2,
-					Criteria:   contentVariableToCertList(it2.Output),
-				},
-				{
-					ImportType: it3,
-					Criteria:   contentVariableToCertList(it3.Output),
-				},
-				{
-					ImportType: itNone,
-					Criteria:   contentVariableToCertList(itNone.Output),
-				},
+				migratedImportType(t, it1),
+				migratedImportType(t, it2),
+				migratedImportType(t, it3),
+				migratedImportType(t, itNone),
 			}
 			slices.SortFunc(expected, func(a, b ImportTypeWithCriteria) int {
 				return strings.Compare(a.ImportType.Id, b.ImportType.Id)
@@ -250,4 +227,25 @@ func TestMigration(t *testing.T) {
 			}
 		})
 	})
+}
+
+// migratedImportType is the stored form the migration produces for an import type that was
+// written before the criteria list existed: the deprecated aspect_id of every content
+// variable folded into aspect_ids, and the criteria derived from that.
+func migratedImportType(t *testing.T, importType model.ImportType) ImportTypeWithCriteria {
+	t.Helper()
+	migrated := model.ImportType{}
+	temp, err := json.Marshal(importType)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = json.Unmarshal(temp, &migrated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	model.SetContentVariableAspectIdsOnWrite(&migrated)
+	return ImportTypeWithCriteria{
+		ImportType: migrated,
+		Criteria:   contentVariableToCertList(migrated.Output),
+	}
 }

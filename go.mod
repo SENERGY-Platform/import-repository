@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/IBM/sarama v1.43.3
-	github.com/SENERGY-Platform/device-repository v0.3.2
+	github.com/SENERGY-Platform/device-repository/v2 v2.2.0
 	github.com/SENERGY-Platform/gin-middleware v0.14.1
 	github.com/SENERGY-Platform/permissions-v2 v0.0.47
 	github.com/SENERGY-Platform/service-commons v0.0.0-20260821114734-3e4578ac2358
@@ -50,6 +50,7 @@ require (
 	github.com/moby/go-archive v0.3.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
@@ -79,7 +80,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/SENERGY-Platform/developer-notifications v0.0.6 // indirect
 	github.com/SENERGY-Platform/go-service-base/struct-logger v0.8.0
-	github.com/SENERGY-Platform/models/go v0.0.0-20260710115411-5b8e00d6e038 // indirect
+	github.com/SENERGY-Platform/models/go v0.0.0-20260902082034-9c8c8bd56d88
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v1.0.0-rc.1 // indirect

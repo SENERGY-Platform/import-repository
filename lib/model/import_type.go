@@ -86,11 +86,14 @@ func ShrinkImportType(importType ImportTypeExtended) ImportType {
 }
 
 func fillAspectFunctions(aspectFunctions map[string]interface{}, aspects map[string]interface{}, functions map[string]interface{}, c ContentVariable) {
-	if c.AspectId != "" && c.FunctionId != "" {
-		aspectFunctions[c.AspectId+"_"+c.FunctionId] = nil
-	}
-	if c.AspectId != "" {
-		aspects[c.AspectId] = nil
+	for _, aspectId := range c.AspectIds {
+		if aspectId == "" {
+			continue
+		}
+		if c.FunctionId != "" {
+			aspectFunctions[aspectId+"_"+c.FunctionId] = nil
+		}
+		aspects[aspectId] = nil
 	}
 	if c.FunctionId != "" {
 		functions[c.FunctionId] = nil
@@ -115,9 +118,34 @@ type ImportTypeListOptions struct {
 	Offset   int64                      //default 0, will be ignored if 'ids' is set (Ids != nil)
 	SortBy   string                     //default name.asc
 	Criteria []ImportTypeFilterCriteria //filter; ignored if nil
+
+	//AndCombineCriteriaAspectIds interprets the AspectIds of a criteria as an AND: the same
+	//content variable has to carry all of them, and each of them covers its aspect subtree.
+	//The default is an OR, where the caller names the aspect subtree it wants itself.
+	AndCombineCriteriaAspectIds bool
 }
 
 type ImportTypeFilterCriteria struct {
 	FunctionId string   `json:"function_id"`
 	AspectIds  []string `json:"aspect_ids"`
+}
+
+// ImportTypeQueryOptions is ImportTypeListOptions with the aspects of every filter-criteria
+// resolved for the database. The controller resolves them, because an aspect subtree is known
+// to the device-repository and not to this service.
+type ImportTypeQueryOptions struct {
+	Ids      []string //filter; ignored if nil; Ids == []string{} will return an empty list;
+	Search   string
+	Limit    int64
+	Offset   int64
+	SortBy   string                    //default name.asc
+	Criteria []ImportTypeCriteriaQuery //filter; ignored if nil
+}
+
+// ImportTypeCriteriaQuery is a filter-criteria as the database evaluates it. A content
+// variable matches a set of AspectIdSets if it carries any of its ids (an OR), and it has to
+// match every set (an AND).
+type ImportTypeCriteriaQuery struct {
+	FunctionId   string
+	AspectIdSets [][]string
 }

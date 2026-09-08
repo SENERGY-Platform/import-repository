@@ -57,6 +57,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *gin.
 // @Param offset query int false "Result offset" default(0)
 // @Param ids query string false "Comma-separated import type ids"
 // @Param criteria query string false "JSON-encoded filter criteria array"
+// @Param and_combine_criteria_aspect_ids query bool false "Combine the aspect_ids of a criteria with AND instead of OR; every named aspect has to be carried by the same content variable and covers its aspect subtree" default(false)
 // @Param search query string false "Free-text search term"
 // @Param sort query string false "Sort order" default(name.asc)
 // @Success 200 {array} model.ImportType
@@ -112,6 +113,15 @@ func (handler importTypesHandler) listImportTypes(c *gin.Context) {
 			_ = c.Error(errors.Join(model.ErrBadRequest, err))
 			return
 		}
+	}
+
+	andCombineParam := c.Query("and_combine_criteria_aspect_ids")
+	if andCombineParam != "" {
+		listOptions.AndCombineCriteriaAspectIds, err = strconv.ParseBool(andCombineParam)
+	}
+	if err != nil {
+		_ = c.Error(errors.Join(model.ErrBadRequest, errors.New("unable to parse and_combine_criteria_aspect_ids"), err))
+		return
 	}
 
 	listOptions.Search = c.Query("search")

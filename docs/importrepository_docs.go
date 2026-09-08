@@ -84,6 +84,13 @@ const docTemplateimportrepository = `{
                         "in": "query"
                     },
                     {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Combine the aspect_ids of a criteria with AND instead of OR; every named aspect has to be carried by the same content variable and covers its aspect subtree",
+                        "name": "and_combine_criteria_aspect_ids",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
                         "description": "Free-text search term",
                         "name": "search",
@@ -365,7 +372,14 @@ const docTemplateimportrepository = `{
             "type": "object",
             "properties": {
                 "aspect_id": {
+                    "description": "deprecated: please use AspectIds",
                     "type": "string"
+                },
+                "aspect_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "characteristic_id": {
                     "type": "string"

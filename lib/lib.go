@@ -20,6 +20,7 @@ import (
 	"context"
 	"sync"
 
+	deviceRepo "github.com/SENERGY-Platform/device-repository/v2/lib/client"
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib/api"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
@@ -36,13 +37,17 @@ func Start(conf config.Config, ctx context.Context, wg *sync.WaitGroup) (err err
 }
 
 func StartWithPermv2Client(conf config.Config, ctx context.Context, wg *sync.WaitGroup, permV2Client permV2.Client) (err error) {
+	return StartWithClients(conf, ctx, wg, permV2Client, deviceRepo.NewClient(conf.DeviceRepoUrl, nil))
+}
+
+func StartWithClients(conf config.Config, ctx context.Context, wg *sync.WaitGroup, permV2Client permV2.Client, deviceRepoClient deviceRepo.Interface) (err error) {
 	db, err := database.New(conf, ctx, wg)
 	if err != nil {
 		log.Logger.Error("unable to connect to database", attributes.ErrorKey, err)
 		return err
 	}
 
-	ctrl, err := controller.New(conf, db, permV2Client)
+	ctrl, err := controller.New(conf, db, permV2Client, deviceRepoClient)
 	if err != nil {
 		log.Logger.Error("unable to start control", attributes.ErrorKey, err)
 		return err

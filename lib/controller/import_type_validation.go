@@ -151,9 +151,7 @@ func (this *Controller) validateContentVariableStep(token jwt.Token, variable mo
 	if len(variable.FunctionId) > 0 {
 		functionIds = append(functionIds, variable.FunctionId)
 	}
-	if len(variable.AspectId) > 0 {
-		aspectIds = append(aspectIds, variable.AspectId)
-	}
+	aspectIds = append(aspectIds, variable.AspectIds...)
 	for _, subVariable := range variable.SubContentVariables {
 		validInner, subCharacteristicIds, subFunctionIds, subAspectIds := this.validateContentVariableStep(token, subVariable)
 		if !validInner {

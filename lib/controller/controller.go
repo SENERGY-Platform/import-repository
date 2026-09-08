@@ -21,19 +21,25 @@ import (
 	"net/http"
 	"time"
 
-	deviceRepo "github.com/SENERGY-Platform/device-repository/lib/client"
+	deviceRepo "github.com/SENERGY-Platform/device-repository/v2/lib/client"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
+	"github.com/SENERGY-Platform/service-commons/pkg/cache"
 )
 
-func New(config config.Config, db database.Database, permV2Client permV2.Client) (ctrl *Controller, err error) {
+func New(config config.Config, db database.Database, permV2Client permV2.Client, deviceRepoClient deviceRepo.Interface) (ctrl *Controller, err error) {
+	aspectCache, err := cache.New(cache.Config{})
+	if err != nil {
+		return nil, err
+	}
 	ctrl = &Controller{
 		db:               db,
 		config:           config,
 		permV2Client:     permV2Client,
-		deviceRepoClient: deviceRepo.NewClient(config.DeviceRepoUrl, nil),
+		deviceRepoClient: deviceRepoClient,
+		aspectCache:      aspectCache,
 	}
 	_, err, _ = ctrl.permV2Client.SetTopic(permV2.InternalAdminToken, permV2.Topic{
 		Id: PermV2Topic,
@@ -56,6 +62,7 @@ type Controller struct {
 	config           config.Config
 	permV2Client     permV2.Client
 	deviceRepoClient deviceRepo.Interface
+	aspectCache      *cache.Cache
 }
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {
@@ -64,7 +71,7 @@ func getTimeoutContext() (context.Context, context.CancelFunc) {
 
 func (this *Controller) Migrate() error {
 	ctx, _ := getTimeoutContext()
-	importTypes, _, err := this.db.ListImportTypes(ctx, model.ImportTypeListOptions{})
+	importTypes, _, err := this.db.ListImportTypes(ctx, model.ImportTypeQueryOptions{})
 	if err != nil {
 		return err
 	}

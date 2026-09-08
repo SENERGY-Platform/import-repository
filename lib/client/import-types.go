@@ -62,6 +62,9 @@ func (c Client) ListImportTypes(token jwt.Token, options model.ImportTypeListOpt
 		}
 		query.Add("criteria", string(filterStr))
 	}
+	if options.AndCombineCriteriaAspectIds {
+		query.Set("and_combine_criteria_aspect_ids", "true")
+	}
 	if len(query) > 0 {
 		queryString = "?" + query.Encode()
 	}

@@ -43,8 +43,8 @@ type ImportTypeWithCriteria struct {
 }
 
 type ImportTypeCriteria struct {
-	FunctionId string `json:"function_id" bson:"function_id"`
-	AspectId   string `json:"aspect_id" bson:"aspect_id"`
+	FunctionId string   `json:"function_id" bson:"function_id"`
+	AspectIds  []string `json:"aspect_ids" bson:"aspect_ids"`
 }
 
 func importTypeWithCriteria(importType model.ImportType) ImportTypeWithCriteria {
@@ -57,7 +57,7 @@ func importTypeWithCriteria(importType model.ImportType) ImportTypeWithCriteria 
 func contentVariableToCertList(cv model.ContentVariable) []ImportTypeCriteria {
 	result := []ImportTypeCriteria{{
 		FunctionId: cv.FunctionId,
-		AspectId:   cv.AspectId,
+		AspectIds:  cv.AspectIds,
 	}}
 	for _, sub := range cv.SubContentVariables {
 		result = append(result, contentVariableToCertList(sub)...)
@@ -88,8 +88,14 @@ func init() {
 	})
 }
 
+// migrateImportTypeCriteria rebuilds the derived criteria of stored import types. It covers
+// import types stored before the criteria list existed, and those whose criteria entries were
+// written before an entry carried aspect_ids instead of a single aspect_id.
 func (this *Mongo) migrateImportTypeCriteria() error {
-	c, err := this.importTypeCollection().Find(context.Background(), bson.M{"criteria": bson.M{"$exists": false}})
+	c, err := this.importTypeCollection().Find(context.Background(), bson.M{"$or": []bson.M{
+		{"criteria": bson.M{"$exists": false}},
+		{"criteria.aspect_ids": bson.M{"$exists": false}},
+	}})
 	if err != nil {
 		return err
 	}
@@ -103,6 +109,7 @@ func (this *Mongo) migrateImportTypeCriteria() error {
 		if err != nil {
 			return err
 		}
+		model.SetContentVariableAspectIdsOnWrite(&element)
 		err = this.SetImportType(context.Background(), element)
 		if err != nil {
 			return err
@@ -135,7 +142,7 @@ func (this *Mongo) GetImportType(ctx context.Context, id string) (importType mod
 	return importType, true, err
 }
 
-func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.ImportTypeListOptions) (result []model.ImportType, total int64, err error) {
+func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.ImportTypeQueryOptions) (result []model.ImportType, total int64, err error) {
 	opt := options.Find()
 	if listOptions.Limit > 0 {
 		opt.SetLimit(listOptions.Limit)
@@ -175,9 +182,7 @@ func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.Import
 			if criteria.FunctionId != "" {
 				criteriaFilter["function_id"] = criteria.FunctionId
 			}
-			if len(criteria.AspectIds) > 0 {
-				criteriaFilter["aspect_id"] = bson.M{"$in": criteria.AspectIds}
-			}
+			addAspectIdSetsToCriteriaFilter(criteriaFilter, criteria.AspectIdSets)
 			and = append(and, bson.M{"criteria": bson.M{"$elemMatch": criteriaFilter}})
 		}
 		filter["$and"] = and
@@ -199,6 +204,26 @@ func (this *Mongo) ListImportTypes(ctx context.Context, listOptions model.Import
 		return result, total, err
 	}
 	return result, total, err
+}
+
+// addAspectIdSetsToCriteriaFilter adds the aspect part of a filter-criteria to the $elemMatch
+// of that criteria. Every set has to be matched by the same content variable, so the
+// conditions are ANDed; within a set the ids are alternatives.
+func addAspectIdSetsToCriteriaFilter(criteriaFilter bson.M, aspectIdSets [][]string) {
+	conditions := []bson.M{}
+	for _, aspectIds := range aspectIdSets {
+		if len(aspectIds) == 0 {
+			continue
+		}
+		conditions = append(conditions, bson.M{"aspect_ids": bson.M{"$in": aspectIds}})
+	}
+	switch len(conditions) {
+	case 0:
+	case 1:
+		criteriaFilter["aspect_ids"] = conditions[0]["aspect_ids"]
+	default:
+		criteriaFilter["$and"] = conditions
+	}
 }
 
 func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportType) error {

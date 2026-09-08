@@ -30,6 +30,8 @@ import (
 	"sync"
 	"time"
 
+	deviceRepo "github.com/SENERGY-Platform/device-repository/v2/lib/client"
+	deviceRepoDatabase "github.com/SENERGY-Platform/device-repository/v2/lib/database"
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
@@ -121,29 +123,41 @@ func jwtget(jwt jwt.Token, url string) (resp *http.Response, err error) {
 }
 
 func createTestEnv(ctx context.Context, wg *sync.WaitGroup) (permv2Client permV2.Client, conf config.Config, err error) {
+	permv2Client, conf, _, err = createTestEnvWithDeviceRepo(ctx, wg)
+	return permv2Client, conf, err
+}
+
+// createTestEnvWithDeviceRepo starts the service against an in-memory device-repository and
+// returns its database, so that a test can provide the aspect nodes a filter-criteria needs.
+func createTestEnvWithDeviceRepo(ctx context.Context, wg *sync.WaitGroup) (permv2Client permV2.Client, conf config.Config, deviceRepoDb deviceRepoDatabase.Database, err error) {
 	conf, err = config.Load("../config.json")
 	if err != nil {
 		log.Logger.Error("unable to load config", attributes.ErrorKey, err)
-		return permv2Client, conf, err
+		return permv2Client, conf, deviceRepoDb, err
 	}
 	conf, err = NewDockerEnv(conf, ctx, wg)
 	if err != nil {
 		log.Logger.Error("unable to create docker env", attributes.ErrorKey, err)
-		return permv2Client, conf, err
+		return permv2Client, conf, deviceRepoDb, err
 	}
 	time.Sleep(1 * time.Second)
 	permv2Client, err = permV2.NewTestClient(ctx)
 	if err != nil {
 		log.Logger.Error("unable to create permv2 test client", attributes.ErrorKey, err)
-		return permv2Client, conf, err
+		return permv2Client, conf, deviceRepoDb, err
 	}
-	err = lib.StartWithPermv2Client(conf, ctx, wg, permv2Client)
+	deviceRepoClient, deviceRepoDb, err := deviceRepo.NewTestClient()
+	if err != nil {
+		log.Logger.Error("unable to create device-repo test client", attributes.ErrorKey, err)
+		return permv2Client, conf, deviceRepoDb, err
+	}
+	err = lib.StartWithClients(conf, ctx, wg, permv2Client, deviceRepoClient)
 	if err != nil {
 		log.Logger.Error("unable to connect to database", attributes.ErrorKey, err)
-		return permv2Client, conf, err
+		return permv2Client, conf, deviceRepoDb, err
 	}
 	time.Sleep(10 * time.Second)
-	return permv2Client, conf, err
+	return permv2Client, conf, deviceRepoDb, err
 }
 
 func NewDockerEnv(startConfig config.Config, ctx context.Context, wg *sync.WaitGroup) (config config.Config, err error) {

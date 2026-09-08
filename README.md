@@ -18,6 +18,16 @@ Simply set these environment variables (default values in brackets):
 *    VALIDATE: whether to validate import types of HTTP requests (false)
 *    DEBUG: whether to print debug output (true)
 
+## docs/
+
+`docs/` holds hand-written knowledge next to the generated specs — behaviour that
+is not visible from the API surface and costs time to rediscover.
+
+- [Criteria aspect ids, and the parameter that ANDs them](docs/criteria-aspect-ids-and-the-and-parameter.md) —
+  how the derived `criteria` array is stored and filtered, why the aspect subtree
+  is resolved in the controller rather than in the database layer, and what the
+  criteria migration means for a rollback
+
 ## Data model
 
 ### ContentVariable
@@ -27,7 +37,10 @@ Simply set these environment variables (default values in brackets):
   "type": string,  
   "characteristic_id": string,  
   "sub_content_variables": ContentVariable[],
-  "use_as_tag": bool
+  "use_as_tag": bool,
+  "function_id": string,
+  "aspect_id": string,      // deprecated: alias for a single element aspect_ids
+  "aspect_ids": string[]
 }
 ```
 

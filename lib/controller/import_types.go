@@ -43,6 +43,7 @@ func (this *Controller) CreateImportType(importType model.ImportType, token jwt.
 		return result, errors.New("explicit setting of owner not allowed"), http.StatusBadRequest
 	}
 	importType.Owner = token.GetUserId()
+	model.SetContentVariableAspectIdsOnWrite(&importType)
 	if this.config.Validate {
 		err, code = this.ValidateImportType(token, importType)
 		if err != nil {
@@ -75,6 +76,7 @@ func (this *Controller) CreateImportType(importType model.ImportType, token jwt.
 	if err != nil {
 		return result, err, code
 	}
+	model.SetContentVariableAspectIdsOnRead(&importType)
 	return importType, nil, http.StatusCreated
 }
 
@@ -92,6 +94,7 @@ func (this *Controller) ReadImportType(id string, token jwt.Token) (result model
 	if !exists {
 		return result, errors.New("not found"), http.StatusNotFound
 	}
+	model.SetContentVariableAspectIdsOnRead(&result)
 	return result, nil, http.StatusOK
 }
 
@@ -119,12 +122,55 @@ func (this *Controller) ListImportTypes(token jwt.Token, options model.ImportTyp
 			}
 		}
 	}
-	ctx, _ := getTimeoutContext()
-	result, total, err = this.db.ListImportTypes(ctx, options)
+	queryOptions, err := this.importTypeQueryOptions(options)
 	if err != nil {
 		return result, total, err, http.StatusInternalServerError
 	}
+	ctx, _ := getTimeoutContext()
+	result, total, err = this.db.ListImportTypes(ctx, queryOptions)
+	if err != nil {
+		return result, total, err, http.StatusInternalServerError
+	}
+	model.SetContentVariableAspectIdsOnReadList(result)
 	return result, total, nil, http.StatusOK
+}
+
+// importTypeQueryOptions resolves the aspects of every filter-criteria for the database. By
+// default the AspectIds of a criteria are alternatives and the caller names the aspect subtree
+// it wants itself. With AndCombineCriteriaAspectIds every named aspect has to be carried by
+// the same content variable, and each of them covers its subtree, which is resolved here
+// because only the device-repository knows the aspect hierarchy.
+func (this *Controller) importTypeQueryOptions(options model.ImportTypeListOptions) (result model.ImportTypeQueryOptions, err error) {
+	result = model.ImportTypeQueryOptions{
+		Ids:    options.Ids,
+		Search: options.Search,
+		Limit:  options.Limit,
+		Offset: options.Offset,
+		SortBy: options.SortBy,
+	}
+	if options.Criteria == nil {
+		return result, nil
+	}
+	result.Criteria = []model.ImportTypeCriteriaQuery{}
+	for _, criteria := range options.Criteria {
+		query := model.ImportTypeCriteriaQuery{FunctionId: criteria.FunctionId}
+		if options.AndCombineCriteriaAspectIds {
+			for _, aspectId := range criteria.AspectIds {
+				if aspectId == "" {
+					continue
+				}
+				subtree, err := this.aspectIdWithDescendents(aspectId)
+				if err != nil {
+					return result, err
+				}
+				query.AspectIdSets = append(query.AspectIdSets, subtree)
+			}
+		} else if len(criteria.AspectIds) > 0 {
+			query.AspectIdSets = [][]string{criteria.AspectIds}
+		}
+		result.Criteria = append(result.Criteria, query)
+	}
+	return result, nil
 }
 
 func (this *Controller) SetImportType(importType model.ImportType, token jwt.Token) (err error, errCode int) {
@@ -143,6 +189,7 @@ func (this *Controller) SetImportType(importType model.ImportType, token jwt.Tok
 	if importType.Owner != existing.Owner {
 		return errors.New("transfer of ownership not possible!"), http.StatusBadRequest
 	}
+	model.SetContentVariableAspectIdsOnWrite(&importType)
 	if this.config.Validate {
 		err, code = this.ValidateImportType(token, importType)
 		if err != nil {

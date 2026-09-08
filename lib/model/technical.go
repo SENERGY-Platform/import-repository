@@ -35,5 +35,6 @@ type ContentVariable struct {
 	SubContentVariables []ContentVariable `json:"sub_content_variables"`
 	UseAsTag            bool              `json:"use_as_tag"`
 	FunctionId          string            `json:"function_id,omitempty"`
-	AspectId            string            `json:"aspect_id,omitempty"`
+	AspectId            string            `json:"aspect_id,omitempty"` //deprecated: please use AspectIds
+	AspectIds           []string          `json:"aspect_ids,omitempty"`
 }
