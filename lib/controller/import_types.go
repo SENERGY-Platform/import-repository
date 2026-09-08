@@ -108,6 +108,10 @@ func (this *Controller) ListImportTypes(token jwt.Token, options model.ImportTyp
 			if err != nil {
 				return result, total, err, http.StatusInternalServerError
 			}
+			if ids == nil {
+				//an empty id filter, not the absent id filter of an admin
+				ids = []string{}
+			}
 		}
 	} else {
 		options.Limit = 0
@@ -122,6 +126,7 @@ func (this *Controller) ListImportTypes(token jwt.Token, options model.ImportTyp
 			}
 		}
 	}
+	options.Ids = ids
 	queryOptions, err := this.importTypeQueryOptions(options)
 	if err != nil {
 		return result, total, err, http.StatusInternalServerError
