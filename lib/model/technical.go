@@ -16,25 +16,23 @@
 
 package model
 
-type Type string
+import "github.com/SENERGY-Platform/models/go/models"
+
+// The types of the import-type model live in the shared model. They are aliased rather than
+// imported directly, because the client of this service is compiled against these names.
+
+type Type = models.Type
 
 const (
-	String  Type = "https://schema.org/Text"
-	Integer Type = "https://schema.org/Integer"
-	Float   Type = "https://schema.org/Float"
-	Boolean Type = "https://schema.org/Boolean"
+	String  = models.String
+	Integer = models.Integer
+	Float   = models.Float
+	Boolean = models.Boolean
 
-	List      Type = "https://schema.org/ItemList"
-	Structure Type = "https://schema.org/StructuredValue"
+	List      = models.List
+	Structure = models.Structure
 )
 
-type ContentVariable struct {
-	Name                string            `json:"name"`
-	Type                Type              `json:"type"`
-	CharacteristicId    string            `json:"characteristic_id"`
-	SubContentVariables []ContentVariable `json:"sub_content_variables"`
-	UseAsTag            bool              `json:"use_as_tag"`
-	FunctionId          string            `json:"function_id,omitempty"`
-	AspectId            string            `json:"aspect_id,omitempty"` //deprecated: please use AspectIds
-	AspectIds           []string          `json:"aspect_ids,omitempty"`
-}
+// ContentVariable is the output description of an import type. It carries AspectIds; the
+// deprecated AspectId is folded into that list, see content_variable_aspects.go.
+type ContentVariable = models.ImportContentVariable

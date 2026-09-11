@@ -368,7 +368,42 @@ const docTemplateimportrepository = `{
         }
     },
     "definitions": {
-        "model.ContentVariable": {
+        "model.ImportType": {
+            "type": "object",
+            "properties": {
+                "configs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ImportTypeConfig"
+                    }
+                },
+                "cost": {
+                    "type": "integer"
+                },
+                "default_restart": {
+                    "type": "boolean"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "output": {
+                    "$ref": "#/definitions/models.ImportContentVariable"
+                },
+                "owner": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ImportContentVariable": {
             "type": "object",
             "properties": {
                 "aspect_id": {
@@ -393,18 +428,18 @@ const docTemplateimportrepository = `{
                 "sub_content_variables": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.ContentVariable"
+                        "$ref": "#/definitions/models.ImportContentVariable"
                     }
                 },
                 "type": {
-                    "$ref": "#/definitions/model.Type"
+                    "$ref": "#/definitions/models.Type"
                 },
                 "use_as_tag": {
                     "type": "boolean"
                 }
             }
         },
-        "model.ImportConfig": {
+        "models.ImportTypeConfig": {
             "type": "object",
             "properties": {
                 "default_value": {},
@@ -415,46 +450,11 @@ const docTemplateimportrepository = `{
                     "type": "string"
                 },
                 "type": {
-                    "$ref": "#/definitions/model.Type"
+                    "$ref": "#/definitions/models.Type"
                 }
             }
         },
-        "model.ImportType": {
-            "type": "object",
-            "properties": {
-                "configs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.ImportConfig"
-                    }
-                },
-                "cost": {
-                    "type": "integer"
-                },
-                "default_restart": {
-                    "type": "boolean"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "output": {
-                    "$ref": "#/definitions/model.ContentVariable"
-                },
-                "owner": {
-                    "type": "string"
-                }
-            }
-        },
-        "model.Type": {
+        "models.Type": {
             "type": "string",
             "enum": [
                 "https://schema.org/Text",

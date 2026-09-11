@@ -16,17 +16,9 @@
 
 package model
 
-type ImportType struct {
-	Id             string          `json:"id"`
-	Name           string          `json:"name"`
-	Description    string          `json:"description"`
-	Image          string          `json:"image"`
-	DefaultRestart bool            `json:"default_restart"`
-	Configs        []ImportConfig  `json:"configs"`
-	Output         ContentVariable `json:"output"`
-	Owner          string          `json:"owner"`
-	Cost           uint64          `json:"cost"`
-}
+import "github.com/SENERGY-Platform/models/go/models"
+
+type ImportType = models.ImportType
 
 type ImportTypeExtended struct {
 	Id                 string          `json:"id"`
@@ -103,13 +95,9 @@ func fillAspectFunctions(aspectFunctions map[string]interface{}, aspects map[str
 	}
 }
 
-type ImportConfig struct {
-	Name               string      `json:"name"`
-	Description        string      `json:"description"`
-	Type               Type        `json:"type"`
-	DefaultValue       interface{} `json:"default_value"`
-	DefaultValueString *string     `json:"-"`
-}
+// ImportConfig declares a config of an import type. The shared model calls it
+// ImportTypeConfig, to keep it apart from the config *values* an import instance carries.
+type ImportConfig = models.ImportTypeConfig
 
 type ImportTypeListOptions struct {
 	Ids      []string //filter; ignores limit/offset if Ids != nil; ignored if Ids == nil; Ids == []string{} will return an empty list;
@@ -125,10 +113,10 @@ type ImportTypeListOptions struct {
 	AndCombineCriteriaAspectIds bool
 }
 
-type ImportTypeFilterCriteria struct {
-	FunctionId string   `json:"function_id"`
-	AspectIds  []string `json:"aspect_ids"`
-}
+// ImportTypeFilterCriteria is the shared filter-criteria. Its deprecated AspectId is an alias
+// for a single element of AspectIds and is folded into that list before the criteria is
+// resolved, the same way ContentVariable.AspectId is folded on write.
+type ImportTypeFilterCriteria = models.ImportTypeFilterCriteria
 
 // ImportTypeQueryOptions is ImportTypeListOptions with the aspects of every filter-criteria
 // resolved for the database. The controller resolves them, because an aspect subtree is known

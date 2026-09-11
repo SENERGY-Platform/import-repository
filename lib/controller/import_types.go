@@ -159,8 +159,9 @@ func (this *Controller) importTypeQueryOptions(options model.ImportTypeListOptio
 	result.Criteria = []model.ImportTypeCriteriaQuery{}
 	for _, criteria := range options.Criteria {
 		query := model.ImportTypeCriteriaQuery{FunctionId: criteria.FunctionId}
+		aspectIds := model.FilterCriteriaAspectIds(criteria)
 		if options.AndCombineCriteriaAspectIds {
-			for _, aspectId := range criteria.AspectIds {
+			for _, aspectId := range aspectIds {
 				if aspectId == "" {
 					continue
 				}
@@ -170,8 +171,8 @@ func (this *Controller) importTypeQueryOptions(options model.ImportTypeListOptio
 				}
 				query.AspectIdSets = append(query.AspectIdSets, subtree)
 			}
-		} else if len(criteria.AspectIds) > 0 {
-			query.AspectIdSets = [][]string{criteria.AspectIds}
+		} else if len(aspectIds) > 0 {
+			query.AspectIdSets = [][]string{aspectIds}
 		}
 		result.Criteria = append(result.Criteria, query)
 	}

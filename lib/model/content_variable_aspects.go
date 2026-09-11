@@ -44,6 +44,16 @@ func SetContentVariableAspectIdsOnReadList(importTypes []ImportType) {
 	}
 }
 
+// FilterCriteriaAspectIds returns the aspects of a filter-criteria with the deprecated
+// AspectId folded into the list, so that only AspectIds has to be interpreted afterwards.
+// The shared filter-criteria carries both fields; this service names only the list.
+func FilterCriteriaAspectIds(criteria ImportTypeFilterCriteria) []string {
+	if criteria.AspectId == "" || slices.Contains(criteria.AspectIds, criteria.AspectId) {
+		return criteria.AspectIds
+	}
+	return append(slices.Clone(criteria.AspectIds), criteria.AspectId)
+}
+
 func syncContentVariableAspectIds(variable *ContentVariable) {
 	addContentVariableAspectIdToAspectIds(variable)
 	if len(variable.AspectIds) == 0 {

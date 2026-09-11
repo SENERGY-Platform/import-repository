@@ -156,6 +156,11 @@ func TestContentVariableAspectIds(t *testing.T) {
 		{FunctionId: getHumidityFunction, AspectIds: []string{parentAspect}},
 	}}, []model.ImportType{itParent}))
 
+	//a criteria that names only the deprecated aspect_id filters like a single element aspect_ids
+	t.Run("or with only the deprecated aspect_id", testImportTypesList(c, client.ImportTypeListOptions{Criteria: []model.ImportTypeFilterCriteria{
+		{FunctionId: getHumidityFunction, AspectId: childAspect1},
+	}}, []model.ImportType{itDeprecated, itBoth}))
+
 	t.Run("and child1", testImportTypesList(c, client.ImportTypeListOptions{
 		AndCombineCriteriaAspectIds: true,
 		Criteria: []model.ImportTypeFilterCriteria{
@@ -183,6 +188,19 @@ func TestContentVariableAspectIds(t *testing.T) {
 		Criteria: []model.ImportTypeFilterCriteria{
 			{FunctionId: getHumidityFunction, AspectIds: []string{parentAspect, childAspect1}},
 		}}, []model.ImportType{itDeprecated, itBoth}))
+
+	t.Run("and with only the deprecated aspect_id", testImportTypesList(c, client.ImportTypeListOptions{
+		AndCombineCriteriaAspectIds: true,
+		Criteria: []model.ImportTypeFilterCriteria{
+			{FunctionId: getHumidityFunction, AspectId: childAspect1},
+		}}, []model.ImportType{itDeprecated, itBoth}))
+
+	//the deprecated aspect_id joins the list instead of replacing it, so both are demanded
+	t.Run("and with the deprecated aspect_id next to the list", testImportTypesList(c, client.ImportTypeListOptions{
+		AndCombineCriteriaAspectIds: true,
+		Criteria: []model.ImportTypeFilterCriteria{
+			{FunctionId: getHumidityFunction, AspectId: childAspect2, AspectIds: []string{childAspect1}},
+		}}, []model.ImportType{itBoth}))
 
 	//an unknown aspect covers only itself and is carried by nobody
 	t.Run("and child1,unknown", testImportTypesList(c, client.ImportTypeListOptions{

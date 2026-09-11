@@ -100,6 +100,11 @@ controller, because two callers need it and only one of them is a controller:
   written before the change carry `AspectId` alone) and then sets `AspectId` to the
   alphabetically first entry, so a client that knows only the old field keeps
   working.
+- A filter-criterion carries the same deprecated field, because the shared
+  `ImportTypeFilterCriteria` declares both. `FilterCriteriaAspectIds` folds it into
+  the list in `importTypeQueryOptions`, so a criterion that names only `aspect_id`
+  filters instead of being dropped. It used to be an unknown json field and was
+  silently ignored.
 - `migrateImportTypeCriteria` in `lib/database/mongo/import_types.go` calls the
   write normalization directly. It re-saves stored import types whose documents
   lack `criteria` **or** whose criteria entries lack `aspect_ids`, and it runs in
@@ -112,6 +117,26 @@ looks for is gone from every migrated document. And an import type whose content
 variables have no aspects at all is migrated too, because its entries have no
 `aspect_ids` field either; that is harmless and idempotent, but it means the
 migration touches every document once rather than only the ones with aspects.
+
+## Where the types live
+
+`lib/model` declares the import-type shapes as aliases of the shared model in
+`github.com/SENERGY-Platform/models/go/models`, so there is one definition per
+shape and the names this service's client exposes stay put:
+
+| `lib/model`                | shared model                    |
+| -------------------------- | ------------------------------- |
+| `ImportType`               | `models.ImportType`             |
+| `ContentVariable`          | `models.ImportContentVariable`  |
+| `ImportConfig`             | `models.ImportTypeConfig`       |
+| `ImportTypeFilterCriteria` | `models.ImportTypeFilterCriteria` |
+| `Type` and its constants   | `models.Type`                   |
+
+What stays local is what the shared model has no opinion about: the derived
+`ImportTypeExtended`, the two option structs, `ImportTypeCriteriaQuery`, and the
+aspect normalization above. The shared model calls the config declaration
+`ImportTypeConfig` and reserves `ImportConfig` for the config *values* of an import
+instance, which this service never handles — the alias keeps the local name.
 
 ## Reading the parameter
 

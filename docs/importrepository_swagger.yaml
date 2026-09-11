@@ -1,6 +1,29 @@
 basePath: /
 definitions:
-  model.ContentVariable:
+  model.ImportType:
+    properties:
+      configs:
+        items:
+          $ref: '#/definitions/models.ImportTypeConfig'
+        type: array
+      cost:
+        type: integer
+      default_restart:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      output:
+        $ref: '#/definitions/models.ImportContentVariable'
+      owner:
+        type: string
+    type: object
+  models.ImportContentVariable:
     properties:
       aspect_id:
         description: 'deprecated: please use AspectIds'
@@ -17,14 +40,14 @@ definitions:
         type: string
       sub_content_variables:
         items:
-          $ref: '#/definitions/model.ContentVariable'
+          $ref: '#/definitions/models.ImportContentVariable'
         type: array
       type:
-        $ref: '#/definitions/model.Type'
+        $ref: '#/definitions/models.Type'
       use_as_tag:
         type: boolean
     type: object
-  model.ImportConfig:
+  models.ImportTypeConfig:
     properties:
       default_value: {}
       description:
@@ -32,32 +55,9 @@ definitions:
       name:
         type: string
       type:
-        $ref: '#/definitions/model.Type'
+        $ref: '#/definitions/models.Type'
     type: object
-  model.ImportType:
-    properties:
-      configs:
-        items:
-          $ref: '#/definitions/model.ImportConfig'
-        type: array
-      cost:
-        type: integer
-      default_restart:
-        type: boolean
-      description:
-        type: string
-      id:
-        type: string
-      image:
-        type: string
-      name:
-        type: string
-      output:
-        $ref: '#/definitions/model.ContentVariable'
-      owner:
-        type: string
-    type: object
-  model.Type:
+  models.Type:
     enum:
     - https://schema.org/Text
     - https://schema.org/Integer
