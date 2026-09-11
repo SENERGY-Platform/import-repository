@@ -20,33 +20,18 @@ import "github.com/SENERGY-Platform/models/go/models"
 
 type ImportType = models.ImportType
 
+// ImportTypeExtended is an import type plus the aspects and functions its output carries,
+// flattened for a consumer that filters on them. The import type is embedded inline, so the
+// extended fields sit next to the plain ones and not in a sub document.
 type ImportTypeExtended struct {
-	Id                 string          `json:"id"`
-	Name               string          `json:"name"`
-	Description        string          `json:"description"`
-	Image              string          `json:"image"`
-	DefaultRestart     bool            `json:"default_restart"`
-	Configs            []ImportConfig  `json:"configs"`
-	ContentAspectIds   []string        `json:"content_aspect_ids"`
-	ContentFunctionIds []string        `json:"content_function_ids"`
-	Output             ContentVariable `json:"output"`
-	AspectFunctions    []string        `json:"aspect_functions"`
-	Owner              string          `json:"owner"`
-	Cost               uint64          `json:"cost"`
+	ImportType         `bson:",inline" json:",inline"`
+	ContentAspectIds   []string `json:"content_aspect_ids"`
+	ContentFunctionIds []string `json:"content_function_ids"`
+	AspectFunctions    []string `json:"aspect_functions"`
 }
 
 func ExtendImportType(importType ImportType) ImportTypeExtended {
-	ex := ImportTypeExtended{
-		Id:             importType.Id,
-		Name:           importType.Name,
-		Description:    importType.Description,
-		Image:          importType.Image,
-		DefaultRestart: importType.DefaultRestart,
-		Configs:        importType.Configs,
-		Output:         importType.Output,
-		Owner:          importType.Owner,
-		Cost:           importType.Cost,
-	}
+	ex := ImportTypeExtended{ImportType: importType}
 	aspectFunctions := make(map[string]interface{})
 	aspects := make(map[string]interface{})
 	functions := make(map[string]interface{})
@@ -64,17 +49,7 @@ func ExtendImportType(importType ImportType) ImportTypeExtended {
 }
 
 func ShrinkImportType(importType ImportTypeExtended) ImportType {
-	return ImportType{
-		Id:             importType.Id,
-		Name:           importType.Name,
-		Description:    importType.Description,
-		Image:          importType.Image,
-		DefaultRestart: importType.DefaultRestart,
-		Configs:        importType.Configs,
-		Output:         importType.Output,
-		Owner:          importType.Owner,
-		Cost:           importType.Cost,
-	}
+	return importType.ImportType
 }
 
 func fillAspectFunctions(aspectFunctions map[string]interface{}, aspects map[string]interface{}, functions map[string]interface{}, c ContentVariable) {
