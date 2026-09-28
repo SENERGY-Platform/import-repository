@@ -30,6 +30,11 @@ func MongoDB(ctx context.Context, wg *sync.WaitGroup) (hostport string, containe
 	log.Logger.Info("start mongo")
 	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
+			// mongo:8.0 makes TestListPermissions flaky: lib/client's CreateImportType and
+			// SetImportType send JSON without a Content-Type header, so gin's ShouldBind falls
+			// back to form binding and drops the body, leaving every created type's name empty.
+			// The test's sort-by-name then ties, and only natural order (which differs between
+			// mongo versions) separates the two entries. Client bug, reported and not fixed here.
 			Image:        "mongo:4.1.11",
 			ExposedPorts: []string{"27017/tcp"},
 			WaitingFor: wait.ForAll(

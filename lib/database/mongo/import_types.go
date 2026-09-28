@@ -79,7 +79,7 @@ func init() {
 	}
 
 	CreateCollections = append(CreateCollections, func(db *Mongo) error {
-		collection := db.client.Database(db.config.MongoTable).Collection(db.config.MongoImportTypeCollection)
+		collection := db.client.Database(db.config.MongoDatabase).Collection(db.config.MongoImportTypeCollection)
 		err = db.ensureIndex(collection, "importTypeIdindex", idKey, true, true)
 		if err != nil {
 			return err
@@ -119,7 +119,7 @@ func (this *Mongo) migrateImportTypeCriteria() error {
 }
 
 func (this *Mongo) importTypeCollection() *mongo.Collection {
-	return this.client.Database(this.config.MongoTable).Collection(this.config.MongoImportTypeCollection)
+	return this.client.Database(this.config.MongoDatabase).Collection(this.config.MongoImportTypeCollection)
 }
 
 func (this *Mongo) GetImportType(ctx context.Context, id string) (importType model.ImportType, exists bool, err error) {
