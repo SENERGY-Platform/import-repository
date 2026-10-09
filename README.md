@@ -20,6 +20,8 @@ Simply set these environment variables (default values in brackets):
 *    GROUP_ID: group id to used to subscribe to kafka (import-repository)
 *    VALIDATE: whether to validate import types of HTTP requests (false)
 *    DEBUG: whether to print debug output (true)
+*    SMART_SERVICE_REPO_URL: URL of the smart-service-repository, asked before an import type is deleted (http://api.smart-service-repository:8080). The in-cluster service, no path prefix. Empty is refused at startup
+*    IMPORT_DEPLOY_URL: URL of import-deploy, asked before an import type is deleted (http://deploy.import-meta:8080). The in-cluster service, no path prefix. Empty is refused at startup
 
 ## docs/
 
@@ -97,6 +99,23 @@ Body: Full ImportType. Ensure id in url and ImportType match. Changing the owner
 ```
 DELETE /device-types/:id
 ```
+
+Before deleting, the caller's `Authorization` header is used to ask the smart-service-repository
+(`GET /resource-usage/import-types/{id}`, answering `{"releases", "instances", "readable"}`) and
+import-deploy (`GET /import-type-usage/{id}`, answering `{"instances", "readable"}`) what uses the
+import type. Both count over all users and list only what the caller may read.
+
+* Used (releases or import instances above zero): 409 with `{"error", "releases",
+  "release_instances", "import_instances", "readable_releases": [{"id", "design_id", "name"}],
+  "readable_imports": [{"id", "name"}]}`; nothing is deleted.
+* Either source cannot be asked (network error, any status but 200, an answer without a count):
+  502, nothing is deleted, also with `force`.
+* `?force=true` deletes anyway. It is for administrators only (realm role `admin` in the token);
+  anyone else gets 403. A forced delete of a used import type is logged at warn with
+  `import_type_id`, `user_id`, `releases`, `release_instances` and `import_instances`.
+
+The check and the delete are not atomic: an instance created in between is not seen. Deleting a
+user (the user topic) removes the import types only that user administers without this check.
 
 ## Security
 Identity is provided by populating the Header "Authorization" with a JWT (prefixed by "Bearer ").

@@ -4,6 +4,8 @@
     "users_topic": "user",
     "permissions_v2_url": "http://permv2.permissions:8080",
     "device_repo_url": "http://device-repo:8080",
+    "smart_service_repo_url": "http://api.smart-service-repository:8080",
+    "import_deploy_url": "http://deploy.import-meta:8080",
     "mongo_url": "mongodb://localhost:27017",
     "mongo_user": "",
     "mongo_password": "",

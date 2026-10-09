@@ -27,4 +27,7 @@ type Controller interface {
 	CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int)
 	SetImportType(importType model.ImportType, token jwt.Token) (err error, code int)
 	DeleteImportType(id string, token jwt.Token) (err error, errCode int)
+	// DeleteImportTypeWithOptions is DeleteImportType with options; DeleteImportType is the
+	// same without force, kept so that the callers of the client interface compile unchanged.
+	DeleteImportTypeWithOptions(id string, token jwt.Token, opts model.DeleteOptions) (err error, errCode int)
 }

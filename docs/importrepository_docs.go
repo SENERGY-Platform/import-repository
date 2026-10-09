@@ -321,7 +321,10 @@ const docTemplateimportrepository = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Deletes an import type by id.",
+                "description": "Deletes an import type by id. Refused with 409 while smart service releases or import instances use it, unless an administrator passes force. Answers 502 when the smart service repository or import-deploy cannot be asked, also with force; nothing is deleted then.",
+                "produces": [
+                    "application/json"
+                ],
                 "tags": [
                     "import-types"
                 ],
@@ -333,6 +336,13 @@ const docTemplateimportrepository = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Administrators only: delete although the import type is still used",
+                        "name": "force",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -357,8 +367,20 @@ const docTemplateimportrepository = `{
                             "type": "string"
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.InUseResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "Bad Gateway",
                         "schema": {
                             "type": "string"
                         }
@@ -368,6 +390,17 @@ const docTemplateimportrepository = `{
         }
     },
     "definitions": {
+        "model.ImportRef": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "model.ImportType": {
             "type": "object",
             "properties": {
@@ -399,6 +432,49 @@ const docTemplateimportrepository = `{
                     "$ref": "#/definitions/models.ImportContentVariable"
                 },
                 "owner": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.InUseResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "import_instances": {
+                    "type": "integer"
+                },
+                "readable_imports": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ImportRef"
+                    }
+                },
+                "readable_releases": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ReleaseRef"
+                    }
+                },
+                "release_instances": {
+                    "type": "integer"
+                },
+                "releases": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ReleaseRef": {
+            "type": "object",
+            "properties": {
+                "design_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

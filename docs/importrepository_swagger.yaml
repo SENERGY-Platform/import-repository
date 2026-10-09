@@ -1,5 +1,12 @@
 basePath: /
 definitions:
+  model.ImportRef:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
   model.ImportType:
     properties:
       configs:
@@ -21,6 +28,34 @@ definitions:
       output:
         $ref: '#/definitions/models.ImportContentVariable'
       owner:
+        type: string
+    type: object
+  model.InUseResponse:
+    properties:
+      error:
+        type: string
+      import_instances:
+        type: integer
+      readable_imports:
+        items:
+          $ref: '#/definitions/model.ImportRef'
+        type: array
+      readable_releases:
+        items:
+          $ref: '#/definitions/model.ReleaseRef'
+        type: array
+      release_instances:
+        type: integer
+      releases:
+        type: integer
+    type: object
+  model.ReleaseRef:
+    properties:
+      design_id:
+        type: string
+      id:
+        type: string
+      name:
         type: string
     type: object
   models.ImportContentVariable:
@@ -201,13 +236,24 @@ paths:
       - import-types
   /import-types/{id}:
     delete:
-      description: Deletes an import type by id.
+      description: Deletes an import type by id. Refused with 409 while smart service
+        releases or import instances use it, unless an administrator passes force.
+        Answers 502 when the smart service repository or import-deploy cannot be asked,
+        also with force; nothing is deleted then.
       parameters:
       - description: Import type id
         in: path
         name: id
         required: true
         type: string
+      - default: false
+        description: 'Administrators only: delete although the import type is still
+          used'
+        in: query
+        name: force
+        type: boolean
+      produces:
+      - application/json
       responses:
         "200":
           description: OK
@@ -223,8 +269,16 @@ paths:
           description: Not Found
           schema:
             type: string
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.InUseResponse'
         "500":
           description: Internal Server Error
+          schema:
+            type: string
+        "502":
+          description: Bad Gateway
           schema:
             type: string
       security:

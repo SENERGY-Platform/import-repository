@@ -26,10 +26,18 @@ var ErrBadRequest = errors.New("bad request")
 var ErrInternalServerError = errors.New("internal server error")
 var ErrForbidden = fmt.Errorf("forbidden")
 var ErrNotFound = fmt.Errorf("not found")
+var ErrConflict = errors.New("conflict")
+var ErrBadGateway = errors.New("bad gateway")
 
 func GetStatusCode(err error) int {
 	if err == nil {
 		return http.StatusOK
+	}
+	if errors.Is(err, ErrConflict) {
+		return http.StatusConflict
+	}
+	if errors.Is(err, ErrBadGateway) {
+		return http.StatusBadGateway
 	}
 	if errors.Is(err, ErrBadRequest) {
 		return http.StatusBadRequest
@@ -58,6 +66,10 @@ func GetError(code int) error {
 		return ErrNotFound
 	case http.StatusForbidden:
 		return ErrForbidden
+	case http.StatusConflict:
+		return ErrConflict
+	case http.StatusBadGateway:
+		return ErrBadGateway
 	default:
 		return ErrInternalServerError
 	}

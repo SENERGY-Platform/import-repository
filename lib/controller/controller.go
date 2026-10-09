@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -25,11 +26,16 @@ import (
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
+	"github.com/SENERGY-Platform/import-repository/lib/usage"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
 	"github.com/SENERGY-Platform/service-commons/pkg/cache"
 )
 
 func New(config config.Config, db database.Database, permV2Client permV2.Client, deviceRepoClient deviceRepo.Interface) (ctrl *Controller, err error) {
+	if config.SmartServiceRepoUrl == "" || config.ImportDeployUrl == "" {
+		// Without them every delete would end in a 502; better to fail at startup.
+		return nil, errors.New("smart service repository and import-deploy addresses are required")
+	}
 	aspectCache, err := cache.New(cache.Config{})
 	if err != nil {
 		return nil, err
@@ -40,6 +46,7 @@ func New(config config.Config, db database.Database, permV2Client permV2.Client,
 		permV2Client:     permV2Client,
 		deviceRepoClient: deviceRepoClient,
 		aspectCache:      aspectCache,
+		usage:            usage.New(config.SmartServiceRepoUrl, config.ImportDeployUrl),
 	}
 	_, err, _ = ctrl.permV2Client.SetTopic(permV2.InternalAdminToken, permV2.Topic{
 		Id: PermV2Topic,
@@ -63,6 +70,13 @@ type Controller struct {
 	permV2Client     permV2.Client
 	deviceRepoClient deviceRepo.Interface
 	aspectCache      *cache.Cache
+	usage            UsageSource
+}
+
+// UsageSource asks what uses an import type, with the caller's token.
+type UsageSource interface {
+	SmartServices(ctx context.Context, importTypeId string, auth string) (model.SmartServiceUsage, error)
+	Imports(ctx context.Context, importTypeId string, auth string) (model.ImportUsage, error)
 }
 
 func getTimeoutContext() (context.Context, context.CancelFunc) {

@@ -107,7 +107,17 @@ func (c Client) SetImportType(importType model.ImportType, token jwt.Token) (err
 }
 
 func (c Client) DeleteImportType(id string, token jwt.Token) (err error, errCode int) {
-	req, err := http.NewRequest(http.MethodDelete, c.baseUrl+"/import-types/"+id, nil)
+	return c.DeleteImportTypeWithOptions(id, token, model.DeleteOptions{})
+}
+
+// DeleteImportTypeWithOptions answers the status code of the service, as DeleteImportType does:
+// 409 means the import type is in use, 502 that its usage could not be checked.
+func (c Client) DeleteImportTypeWithOptions(id string, token jwt.Token, opts model.DeleteOptions) (err error, errCode int) {
+	address := c.baseUrl + "/import-types/" + id
+	if opts.Force {
+		address += "?force=true"
+	}
+	req, err := http.NewRequest(http.MethodDelete, address, nil)
 	if err != nil {
 		return err, http.StatusInternalServerError
 	}

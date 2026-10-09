@@ -151,6 +151,9 @@ func createTestEnvWithDeviceRepo(ctx context.Context, wg *sync.WaitGroup) (permv
 		log.Logger.Error("unable to create device-repo test client", attributes.ErrorKey, err)
 		return permv2Client, conf, deviceRepoDb, err
 	}
+	var usageUrl string
+	currentUsage, usageUrl = startUsageStub(ctx)
+	conf.SmartServiceRepoUrl, conf.ImportDeployUrl = usageUrl, usageUrl
 	err = lib.StartWithClients(conf, ctx, wg, permv2Client, deviceRepoClient)
 	if err != nil {
 		log.Logger.Error("unable to connect to database", attributes.ErrorKey, err)

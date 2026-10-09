@@ -169,14 +169,18 @@ func (handler importTypesHandler) readImportType(c *gin.Context) {
 
 // deleteImportType godoc
 // @Summary Delete import type
-// @Description Deletes an import type by id.
+// @Description Deletes an import type by id. Refused with 409 while smart service releases or import instances use it, unless an administrator passes force. Answers 502 when the smart service repository or import-deploy cannot be asked, also with force; nothing is deleted then.
 // @Tags import-types
+// @Produce json
 // @Param id path string true "Import type id"
+// @Param force query bool false "Administrators only: delete although the import type is still used" default(false)
 // @Success 200
 // @Failure 400 {string} ErrorResponse
 // @Failure 403 {string} ErrorResponse
 // @Failure 404 {string} ErrorResponse
+// @Failure 409 {object} model.InUseResponse
 // @Failure 500 {string} ErrorResponse
+// @Failure 502 {string} ErrorResponse
 // @Security Bearer
 // @Router /import-types/{id} [delete]
 func (handler importTypesHandler) deleteImportType(c *gin.Context) {
@@ -186,8 +190,22 @@ func (handler importTypesHandler) deleteImportType(c *gin.Context) {
 		_ = c.Error(errors.Join(model.ErrBadRequest, err))
 		return
 	}
-	err, errCode := handler.control.DeleteImportType(id, token)
+	opts := model.DeleteOptions{}
+	if raw := c.Query("force"); raw != "" {
+		opts.Force, err = strconv.ParseBool(raw)
+		if err != nil {
+			_ = c.Error(errors.Join(model.ErrBadRequest, errors.New("force must be true or false")))
+			return
+		}
+	}
+	err, errCode := handler.control.DeleteImportTypeWithOptions(id, token, opts)
 	if err != nil {
+		// The 409 carries the usage in its body, which the error handler would reduce to text.
+		var inUse *model.InUseError
+		if errors.As(err, &inUse) {
+			c.JSON(http.StatusConflict, inUse.Response())
+			return
+		}
 		_ = c.Error(errors.Join(model.GetError(errCode), err))
 		return
 	}

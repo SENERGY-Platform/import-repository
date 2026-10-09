@@ -178,6 +178,54 @@ func TestConfigFormattingMasksMongoPassword(t *testing.T) {
 	}
 }
 
+func clearUsageEnv(t *testing.T) {
+	for _, k := range []string{"SMART_SERVICE_REPO_URL", "IMPORT_DEPLOY_URL"} {
+		t.Setenv(k, "")
+	}
+}
+
+const (
+	defaultSmartServiceRepoUrl = "http://api.smart-service-repository:8080"
+	defaultImportDeployUrl     = "http://deploy.import-meta:8080"
+)
+
+func TestLoad_UsageUrlDefaults(t *testing.T) {
+	clearMongoEnv(t)
+	clearUsageEnv(t)
+	for name, path := range map[string]string{"repo config": "../../config.json", "file omitting them": writeConfig(t, `{}`)} {
+		t.Run(name, func(t *testing.T) {
+			cfg, err := Load(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cfg.SmartServiceRepoUrl != defaultSmartServiceRepoUrl || cfg.ImportDeployUrl != defaultImportDeployUrl {
+				t.Errorf("urls = %q, %q, want %q, %q", cfg.SmartServiceRepoUrl, cfg.ImportDeployUrl, defaultSmartServiceRepoUrl, defaultImportDeployUrl)
+			}
+		})
+	}
+}
+
+func TestLoad_UsageUrlEnvAndFile(t *testing.T) {
+	clearMongoEnv(t)
+	clearUsageEnv(t)
+	cfg, err := Load(writeConfig(t, `{"smart_service_repo_url": "http://file-smart", "import_deploy_url": "http://file-deploy"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SmartServiceRepoUrl != "http://file-smart" || cfg.ImportDeployUrl != "http://file-deploy" {
+		t.Errorf("file: urls = %q, %q", cfg.SmartServiceRepoUrl, cfg.ImportDeployUrl)
+	}
+	t.Setenv("SMART_SERVICE_REPO_URL", "http://env-smart")
+	t.Setenv("IMPORT_DEPLOY_URL", "http://env-deploy")
+	cfg, err = Load(writeConfig(t, `{"smart_service_repo_url": "http://file-smart", "import_deploy_url": "http://file-deploy"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.SmartServiceRepoUrl != "http://env-smart" || cfg.ImportDeployUrl != "http://env-deploy" {
+		t.Errorf("env: urls = %q, %q", cfg.SmartServiceRepoUrl, cfg.ImportDeployUrl)
+	}
+}
+
 func captureStdout(t *testing.T, f func()) string {
 	t.Helper()
 	r, w, err := os.Pipe()

@@ -21,6 +21,8 @@ import (
 	"github.com/SENERGY-Platform/permissions-v2/pkg/client"
 	"net/http"
 
+	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
+	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
 	permV2Model "github.com/SENERGY-Platform/permissions-v2/pkg/model"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
@@ -212,11 +214,55 @@ func (this *Controller) SetImportType(importType model.ImportType, token jwt.Tok
 }
 
 func (this *Controller) DeleteImportType(id string, token jwt.Token) (err error, errCode int) {
+	return this.DeleteImportTypeWithOptions(id, token, model.DeleteOptions{})
+}
+
+// DeleteImportTypeWithOptions refuses an import type that smart service releases or import
+// instances still use, with an *model.InUseError and 409, unless opts.Force is set by an
+// administrator. When the usage cannot be determined nothing is deleted (502), also with force.
+// Check and delete are not atomic: an instance created in between is not seen.
+func (this *Controller) DeleteImportTypeWithOptions(id string, token jwt.Token, opts model.DeleteOptions) (err error, errCode int) {
+	if opts.Force && !token.IsAdmin() {
+		return errors.New("force needs the admin role"), http.StatusForbidden
+	}
 	err, code := this.CheckAccessToImportType(token, id, permV2Model.Administrate)
 	if err != nil {
 		return err, code
 	}
-	return this.deleteImportType(id)
+	used, err := this.usageOf(id, token)
+	if err != nil {
+		return err, http.StatusBadGateway
+	}
+	if used.Used() && !opts.Force {
+		return &model.InUseError{Usage: used}, http.StatusConflict
+	}
+	err, code = this.deleteImportType(id)
+	if err != nil {
+		return err, code
+	}
+	if used.Used() {
+		log.Logger.Warn("deleted an import type that is still used", "import_type_id", id, "user_id", token.GetUserId(),
+			"releases", used.SmartServices.Releases, "release_instances", used.SmartServices.Instances, "import_instances", used.Imports.Instances)
+	}
+	return nil, code
+}
+
+// usageOf asks both sources with the caller's token. Either failing is model.ErrUsageUnavailable:
+// the detail may hold internals, so it is logged and not returned.
+func (this *Controller) usageOf(id string, token jwt.Token) (used model.ImportTypeUsage, err error) {
+	ctx, cancel := getTimeoutContext()
+	defer cancel()
+	used.SmartServices, err = this.usage.SmartServices(ctx, id, token.Token)
+	if err != nil {
+		log.Logger.Warn("could not ask the smart service repository for the usage of an import type", "import_type_id", id, attributes.ErrorKey, err)
+		return used, model.ErrUsageUnavailable
+	}
+	used.Imports, err = this.usage.Imports(ctx, id, token.Token)
+	if err != nil {
+		log.Logger.Warn("could not ask import-deploy for the usage of an import type", "import_type_id", id, attributes.ErrorKey, err)
+		return used, model.ErrUsageUnavailable
+	}
+	return used, nil
 }
 
 func (this *Controller) deleteImportType(id string) (err error, code int) {

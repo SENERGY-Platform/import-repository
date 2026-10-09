@@ -45,6 +45,10 @@ type Config struct {
 	RepublishStartup          bool   `json:"republish_startup"`
 	PermissionsV2Url          string `json:"permissions_v2_url"`
 	LogHandler                string `json:"log_handler"`
+	// SmartServiceRepoUrl and ImportDeployUrl are asked before an import type is deleted, to see
+	// whether smart service releases or import instances use it. Both are required.
+	SmartServiceRepoUrl string `json:"smart_service_repo_url"`
+	ImportDeployUrl     string `json:"import_deploy_url"`
 }
 
 // loads config from json in location and used environment variables (e.g ZookeeperUrl --> ZOOKEEPER_URL)
@@ -58,6 +62,9 @@ func Load(location string) (config Config, err error) {
 		MongoUrl:        "mongodb://localhost:27017",
 		MongoAuthSource: "admin",
 		MongoDatabase:   "import_repository",
+		// The in-cluster services; neither is behind a path prefix there.
+		SmartServiceRepoUrl: "http://api.smart-service-repository:8080",
+		ImportDeployUrl:     "http://deploy.import-meta:8080",
 	}
 	decoder := json.NewDecoder(file)
 	error = decoder.Decode(&config)
