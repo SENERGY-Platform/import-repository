@@ -5,7 +5,7 @@ go 1.26.1
 require (
 	github.com/IBM/sarama v1.43.3
 	github.com/SENERGY-Platform/device-repository/v2 v2.2.0
-	github.com/SENERGY-Platform/gin-middleware v0.14.1
+	github.com/SENERGY-Platform/gin-middleware v0.14.2
 	github.com/SENERGY-Platform/permissions-v2 v0.0.47
 	github.com/SENERGY-Platform/service-commons v0.0.0-20260821114734-3e4578ac2358
 	github.com/gin-contrib/requestid v1.0.5
