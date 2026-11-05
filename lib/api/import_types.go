@@ -45,6 +45,7 @@ func ImportTypesEndpoints(config config.Config, control Controller, router *gin.
 	router.GET(resource+"/:id", handler.readImportType)
 	router.DELETE(resource+"/:id", handler.deleteImportType)
 	router.PUT(resource+"/:id", handler.setImportType)
+	router.PUT(resource+"/:id/owner", handler.setImportTypeOwner)
 	router.POST(resource, handler.createImportType)
 }
 
@@ -282,4 +283,44 @@ func (handler importTypesHandler) createImportType(c *gin.Context) {
 		return
 	}
 	c.JSON(code, result)
+}
+
+// setImportTypeOwner godoc
+// @Summary Move import type to another owner
+// @Description Administrators only. Gives the user every right on the import type in permissions-v2, keeps all other permission entries, then sets the stored owner; no other field changes and the id stays. Repeating the request completes a move that failed halfway.
+// @Tags import-types
+// @Accept json
+// @Produce json
+// @Param id path string true "Import type id"
+// @Param owner body model.OwnerCommand true "New owner"
+// @Success 200 {object} model.ImportType
+// @Failure 400 {string} ErrorResponse
+// @Failure 403 {string} ErrorResponse
+// @Failure 404 {string} ErrorResponse
+// @Failure 500 {string} ErrorResponse
+// @Security Bearer
+// @Router /import-types/{id}/owner [put]
+func (handler importTypesHandler) setImportTypeOwner(c *gin.Context) {
+	id := c.Param("id")
+	token, err := jwt.GetParsedToken(c.Request)
+	if err != nil {
+		_ = c.Error(errors.Join(model.ErrBadRequest, err))
+		return
+	}
+	if !token.IsAdmin() {
+		_ = c.Error(errors.Join(model.ErrForbidden, errors.New("admin role required")))
+		return
+	}
+	command := model.OwnerCommand{}
+	err = c.ShouldBindJSON(&command)
+	if err != nil {
+		_ = c.Error(errors.Join(model.ErrBadRequest, err))
+		return
+	}
+	result, err, code := handler.control.SetImportTypeOwner(id, command.Owner, token)
+	if err != nil {
+		_ = c.Error(errors.Join(model.GetError(code), err))
+		return
+	}
+	c.JSON(http.StatusOK, result)
 }

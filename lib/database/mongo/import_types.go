@@ -33,9 +33,11 @@ import (
 
 const idFieldName = "Id"
 const nameFieldName = "Name"
+const ownerFieldName = "Owner"
 
 var idKey string
 var nameKey string
+var ownerKey string
 
 type ImportTypeWithCriteria struct {
 	model.ImportType `bson:",inline" json:",inline"`
@@ -75,6 +77,11 @@ func init() {
 	nameKey, err = getBsonFieldName(model.ImportType{}, nameFieldName)
 	if err != nil {
 		log.Logger.Error("unable to get bson field name for import type name", attributes.ErrorKey, err)
+		panic(err)
+	}
+	ownerKey, err = getBsonFieldName(model.ImportType{}, ownerFieldName)
+	if err != nil {
+		log.Logger.Error("unable to get bson field name for import type owner", attributes.ErrorKey, err)
 		panic(err)
 	}
 
@@ -251,6 +258,15 @@ func (this *Mongo) SetImportType(ctx context.Context, importType model.ImportTyp
 		importType.Configs[i] = oldConfigs[i]
 	}
 	return err
+}
+
+// SetImportTypeOwner sets nothing but the owner, so that the stored criteria and every other field stay as they are.
+func (this *Mongo) SetImportTypeOwner(ctx context.Context, id string, owner string) (found bool, err error) {
+	result, err := this.importTypeCollection().UpdateOne(ctx, bson.M{idKey: id}, bson.M{"$set": bson.M{ownerKey: owner}})
+	if err != nil {
+		return false, err
+	}
+	return result.MatchedCount > 0, nil
 }
 
 func (this *Mongo) RemoveImportType(ctx context.Context, id string) error {

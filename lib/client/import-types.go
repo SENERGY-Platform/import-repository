@@ -128,3 +128,17 @@ func (c Client) DeleteImportTypeWithOptions(id string, token jwt.Token, opts mod
 	}
 	return nil, resp.StatusCode
 }
+
+func (c Client) SetImportTypeOwner(id string, owner string, token jwt.Token) (result model.ImportType, err error, code int) {
+	b, err := json.Marshal(model.OwnerCommand{Owner: owner})
+	if err != nil {
+		return result, err, http.StatusBadRequest
+	}
+	req, err := http.NewRequest(http.MethodPut, c.baseUrl+"/import-types/"+url.PathEscape(id)+"/owner", bytes.NewBuffer(b))
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	req.Header.Set("Authorization", token.Jwt())
+	req.Header.Set("Content-Type", "application/json")
+	return do[model.ImportType](req)
+}

@@ -49,6 +49,11 @@ definitions:
       releases:
         type: integer
     type: object
+  model.OwnerCommand:
+    properties:
+      owner:
+        type: string
+    type: object
   model.ReleaseRef:
     properties:
       design_id:
@@ -361,6 +366,54 @@ paths:
       security:
       - Bearer: []
       summary: Update import type
+      tags:
+      - import-types
+  /import-types/{id}/owner:
+    put:
+      consumes:
+      - application/json
+      description: Administrators only. Gives the user every right on the import type
+        in permissions-v2, keeps all other permission entries, then sets the stored
+        owner; no other field changes and the id stays. Repeating the request completes
+        a move that failed halfway.
+      parameters:
+      - description: Import type id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New owner
+        in: body
+        name: owner
+        required: true
+        schema:
+          $ref: '#/definitions/model.OwnerCommand'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.ImportType'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: Move import type to another owner
       tags:
       - import-types
 securityDefinitions:

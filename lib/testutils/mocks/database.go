@@ -45,6 +45,16 @@ func (this *Database) SetImportType(ctx context.Context, importType model.Import
 	return nil
 }
 
+func (this *Database) SetImportTypeOwner(ctx context.Context, id string, owner string) (bool, error) {
+	importType, exists := this.importTypes[id]
+	if !exists {
+		return false, nil
+	}
+	importType.Owner = owner
+	this.importTypes[id] = importType
+	return true, nil
+}
+
 func (this *Database) RemoveImportType(ctx context.Context, id string) error {
 	delete(this.importTypes, id)
 	return nil

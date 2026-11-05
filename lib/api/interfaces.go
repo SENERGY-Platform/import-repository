@@ -26,6 +26,8 @@ type Controller interface {
 	ListImportTypes(token jwt.Token, options model.ImportTypeListOptions) (result []model.ImportType, total int64, err error, errCode int)
 	CreateImportType(importType model.ImportType, token jwt.Token) (result model.ImportType, err error, code int)
 	SetImportType(importType model.ImportType, token jwt.Token) (err error, code int)
+	// SetImportTypeOwner is for administrators only and changes nothing but the owner.
+	SetImportTypeOwner(id string, owner string, token jwt.Token) (result model.ImportType, err error, code int)
 	DeleteImportType(id string, token jwt.Token) (err error, errCode int)
 	// DeleteImportTypeWithOptions is DeleteImportType with options; DeleteImportType is the
 	// same without force, kept so that the callers of the client interface compile unchanged.

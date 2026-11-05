@@ -20,6 +20,7 @@ import (
 	"errors"
 	"github.com/SENERGY-Platform/permissions-v2/pkg/client"
 	"net/http"
+	"strings"
 
 	"github.com/SENERGY-Platform/go-service-base/struct-logger/attributes"
 	"github.com/SENERGY-Platform/import-repository/lib/log"
@@ -211,6 +212,66 @@ func (this *Controller) SetImportType(importType model.ImportType, token jwt.Tok
 	}
 
 	return nil, http.StatusOK
+}
+
+var fullRights = permV2Model.PermissionsMap{Read: true, Write: true, Execute: true, Administrate: true}
+
+// SetImportTypeOwner moves the import type to owner, for administrators only: the owner gets full
+// rights in permissions-v2 first, every other entry stays as stored, then the document's owner is set.
+// If the document write fails the owner merely holds extra rights and a repeat completes the move.
+// Permissions are written back without a version check, so a permission edit made in between is lost.
+func (this *Controller) SetImportTypeOwner(id string, owner string, token jwt.Token) (result model.ImportType, err error, code int) {
+	if !token.IsAdmin() {
+		return result, errors.New("admin role required"), http.StatusForbidden
+	}
+	if owner == "" || strings.TrimSpace(owner) != owner {
+		return result, errors.New("owner must be a user id without surrounding whitespace"), http.StatusBadRequest
+	}
+	ctx, cancel := getTimeoutContext()
+	defer cancel()
+	existing, exists, err := this.db.GetImportType(ctx, id)
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	if !exists {
+		return result, errors.New("not found"), http.StatusNotFound
+	}
+
+	resource, err, _ := this.permV2Client.GetResource(client.InternalAdminToken, PermV2Topic, id)
+	if err != nil {
+		// Also when permissions-v2 knows no entry: an entry written here could keep the creator of an import type that is just being created out.
+		return result, err, http.StatusInternalServerError
+	}
+	permissions := resource.ResourcePermissions
+	if permissions.UserPermissions[owner] != fullRights {
+		if permissions.UserPermissions == nil {
+			permissions.UserPermissions = map[string]permV2Model.PermissionsMap{}
+		}
+		permissions.UserPermissions[owner] = fullRights
+		_, err, _ = this.permV2Client.SetPermission(client.InternalAdminToken, PermV2Topic, id, permissions)
+		if err != nil {
+			return result, err, http.StatusInternalServerError
+		}
+	}
+
+	if existing.Owner != owner {
+		found, err := this.db.SetImportTypeOwner(ctx, id, owner)
+		if err != nil {
+			return result, err, http.StatusInternalServerError
+		}
+		if !found {
+			return result, errors.New("not found"), http.StatusNotFound
+		}
+	}
+	result, exists, err = this.db.GetImportType(ctx, id)
+	if err != nil {
+		return result, err, http.StatusInternalServerError
+	}
+	if !exists {
+		return result, errors.New("not found"), http.StatusNotFound
+	}
+	model.SetContentVariableAspectIdsOnRead(&result)
+	return result, nil, http.StatusOK
 }
 
 func (this *Controller) DeleteImportType(id string, token jwt.Token) (err error, errCode int) {

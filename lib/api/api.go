@@ -41,8 +41,22 @@ var endpoints = []func(config config.Config, control Controller, router *gin.Eng
 // @name Authorization
 func Start(config config.Config, control Controller) (err error) {
 	log.Logger.Info("start api")
+	router := newRouter(config, control)
+	log.Logger.Info("listen on port", "port", config.ServerPort)
+	go func() {
+		err := http.ListenAndServe(":"+config.ServerPort, router)
+		if err != nil {
+			log.Logger.Error("unable to listen on port", "port", config.ServerPort, attributes.ErrorKey, err)
+		}
+	}()
+	return nil
+}
+
+func newRouter(config config.Config, control Controller) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
+	// A wrong method on a known path answers 405, so that clients can tell "route exists" from "no such route".
+	router.HandleMethodNotAllowed = true
 	router.Use(
 		gin_mw.StructLoggerHandlerWithDefaultGenerators(
 			log.Logger.With(attributes.LogRecordTypeKey, attributes.HttpAccessLogRecordTypeVal),
@@ -61,12 +75,5 @@ func Start(config config.Config, control Controller) (err error) {
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
 	})
-	log.Logger.Info("listen on port", "port", config.ServerPort)
-	go func() {
-		err := http.ListenAndServe(":"+config.ServerPort, router)
-		if err != nil {
-			log.Logger.Error("unable to listen on port", "port", config.ServerPort, attributes.ErrorKey, err)
-		}
-	}()
-	return nil
+	return router
 }

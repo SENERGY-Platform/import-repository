@@ -101,6 +101,13 @@ func (this *Controller) Migrate() error {
 				},
 			}
 		}
+		// permissions-v2 may answer null maps for an entry without user or role permissions
+		if resource.UserPermissions == nil {
+			resource.UserPermissions = map[string]permV2.PermissionsMap{}
+		}
+		if resource.RolePermissions == nil {
+			resource.RolePermissions = map[string]permV2.PermissionsMap{}
+		}
 		resource.UserPermissions[importType.Owner] = permV2.PermissionsMap{
 			Read:         true,
 			Write:        true,

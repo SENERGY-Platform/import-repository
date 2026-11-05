@@ -379,6 +379,76 @@
                     }
                 }
             }
+        },
+        "/import-types/{id}/owner": {
+            "put": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Administrators only. Gives the user every right on the import type in permissions-v2, keeps all other permission entries, then sets the stored owner; no other field changes and the id stays. Repeating the request completes a move that failed halfway.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "import-types"
+                ],
+                "summary": "Move import type to another owner",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Import type id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New owner",
+                        "name": "owner",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.OwnerCommand"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ImportType"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -454,6 +524,14 @@
                 },
                 "releases": {
                     "type": "integer"
+                }
+            }
+        },
+        "model.OwnerCommand": {
+            "type": "object",
+            "properties": {
+                "owner": {
+                    "type": "string"
                 }
             }
         },

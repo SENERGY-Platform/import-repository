@@ -20,6 +20,10 @@ import "github.com/SENERGY-Platform/models/go/models"
 
 type ImportType = models.ImportType
 
+type OwnerCommand struct {
+	Owner string `json:"owner"`
+}
+
 // ImportTypeExtended is an import type plus the aspects and functions its output carries,
 // flattened for a consumer that filters on them. The import type is embedded inline, so the
 // extended fields sit next to the plain ones and not in a sub document.
