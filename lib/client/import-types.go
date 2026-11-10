@@ -19,7 +19,9 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -86,6 +88,7 @@ func (c Client) CreateImportType(importType model.ImportType, token jwt.Token) (
 		return result, err, http.StatusInternalServerError
 	}
 	req.Header.Set("Authorization", token.Jwt())
+	req.Header.Set("Content-Type", "application/json")
 	return do[model.ImportType](req)
 }
 
@@ -94,14 +97,20 @@ func (c Client) SetImportType(importType model.ImportType, token jwt.Token) (err
 	if err != nil {
 		return err, http.StatusBadRequest
 	}
-	req, err := http.NewRequest(http.MethodPost, c.baseUrl+"/import-types", bytes.NewBuffer(b))
+	req, err := http.NewRequest(http.MethodPut, c.baseUrl+"/import-types/"+url.PathEscape(importType.Id), bytes.NewBuffer(b))
 	if err != nil {
 		return err, http.StatusInternalServerError
 	}
 	req.Header.Set("Authorization", token.Jwt())
+	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err, http.StatusInternalServerError
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body) //ensure that resp.Body is read to EOF
+	if resp.StatusCode > 299 {
+		return fmt.Errorf("unexpected statuscode %v: %v", resp.StatusCode, string(body)), resp.StatusCode
 	}
 	return nil, resp.StatusCode
 }

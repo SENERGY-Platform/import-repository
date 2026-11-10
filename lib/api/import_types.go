@@ -235,7 +235,7 @@ func (handler importTypesHandler) setImportType(c *gin.Context) {
 		return
 	}
 	importType := model.ImportType{}
-	err = c.ShouldBind(&importType)
+	err = c.ShouldBindJSON(&importType)
 	if err != nil {
 		_ = c.Error(errors.Join(model.ErrBadRequest, err))
 		return
@@ -272,7 +272,7 @@ func (handler importTypesHandler) createImportType(c *gin.Context) {
 		_ = c.Error(errors.Join(model.ErrBadRequest, err))
 		return
 	}
-	err = c.ShouldBind(&importType)
+	err = c.ShouldBindJSON(&importType)
 	if err != nil {
 		_ = c.Error(errors.Join(model.ErrBadRequest, err))
 		return

@@ -67,6 +67,9 @@ func TestListPermissions(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
+		if result.Name != name {
+			t.Errorf("created %q as %q", name, result.Name)
+		}
 		return result
 	}
 
