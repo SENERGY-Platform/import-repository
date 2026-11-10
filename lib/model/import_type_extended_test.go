@@ -29,8 +29,7 @@ import (
 // sit in the same document. A missing bson:",inline" still compiles and still passes every
 // test that reads the struct in Go, while the stored form silently grows an importtype sub
 // document; json needs no tag, it promotes an anonymous field on its own. These lists are the
-// encoded form as it was before the embedding, and the json one is the contract of the kafka
-// command this type is the payload of.
+// encoded form as it was before the embedding.
 
 var importTypeExtendedJsonPaths = []string{
 	"aspect_functions[]",

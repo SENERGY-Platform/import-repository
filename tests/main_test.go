@@ -173,17 +173,6 @@ func NewDockerEnv(startConfig config.Config, ctx context.Context, wg *sync.WaitG
 	}
 	config.ServerPort = strconv.Itoa(whPort)
 
-	_, zkIp, err := docker.Zookeeper(ctx, wg)
-	if err != nil {
-		return config, err
-	}
-	zkUrl := zkIp + ":2181"
-
-	config.KafkaBootstrap, err = docker.Kafka(ctx, wg, zkUrl)
-	if err != nil {
-		return config, err
-	}
-
 	_, ip, err := docker.MongoDB(ctx, wg)
 	if err != nil {
 		return config, err

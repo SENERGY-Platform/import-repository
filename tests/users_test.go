@@ -19,20 +19,20 @@ package tests
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"net/url"
 	"reflect"
 	"slices"
 	"sort"
 	"strconv"
 	"sync"
 	"testing"
-	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/SENERGY-Platform/import-repository/lib/config"
 	"github.com/SENERGY-Platform/import-repository/lib/controller"
 	"github.com/SENERGY-Platform/import-repository/lib/log"
 	"github.com/SENERGY-Platform/import-repository/lib/model"
-	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
 	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 )
@@ -184,37 +184,32 @@ func TestUserDelete(t *testing.T) {
 	users2Expected = append(users2Expected, ids[8:18]...)
 	t.Run("check user2 before delete", checkUserImportTypes(permv2Client, user2, users2Expected, ids))
 
-	t.Run("delete user1", func(t *testing.T) {
-		kafkaConf := sarama.NewConfig()
-		kafkaConf.Producer.Return.Successes = true
-		syncP, err := sarama.NewSyncProducer([]string{conf.KafkaBootstrap}, kafkaConf)
+	deleteUser := func(token jwt.Token, userId string) (status int, body string) {
+		resp, err := jwtdelete(token, "http://localhost:"+conf.ServerPort+"/users/"+url.PathEscape(userId))
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
 		}
-		defer syncP.Close()
-		cmd := listener.UserCommandMsg{
-			Command: "DELETE",
-			Id:      user1.GetUserId(),
-		}
-		message, err := json.Marshal(cmd)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		_, _, err = syncP.SendMessage(
-			&sarama.ProducerMessage{
-				Topic: conf.UsersTopic,
-				Value: sarama.StringEncoder(message),
-				Key:   sarama.StringEncoder(cmd.Id),
-			})
-		if err != nil {
-			t.Error(err)
-			return
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(b)
+	}
+
+	t.Run("delete user1 as non-admin", func(t *testing.T) {
+		if status, body := deleteUser(user2, user1.GetUserId()); status != http.StatusForbidden {
+			t.Errorf("expected 403, got %v %v", status, body)
 		}
 	})
+	t.Run("check user1 after refused delete", checkUserImportTypes(permv2Client, user1, users1Expected, ids))
 
-	time.Sleep(5 * time.Second)
+	t.Run("delete user1", func(t *testing.T) {
+		admin, err := createTokenWithRoles("test", "admin-1", []string{"admin"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if status, body := deleteUser(admin, user1.GetUserId()); status != http.StatusNoContent {
+			t.Errorf("expected 204, got %v %v", status, body)
+		}
+	})
 
 	users2Expected = []string{}
 	users2Expected = append(users2Expected, ids[:4]...)

@@ -27,8 +27,6 @@ import (
 	"github.com/SENERGY-Platform/import-repository/lib/controller"
 	"github.com/SENERGY-Platform/import-repository/lib/database"
 	"github.com/SENERGY-Platform/import-repository/lib/log"
-	"github.com/SENERGY-Platform/import-repository/lib/source/consumer"
-	"github.com/SENERGY-Platform/import-repository/lib/source/consumer/listener"
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
 )
 
@@ -57,12 +55,6 @@ func StartWithClients(conf config.Config, ctx context.Context, wg *sync.WaitGrou
 	if err != nil {
 		log.Logger.Error("unable to migrate", attributes.ErrorKey, err)
 		return err
-	}
-
-	_, err = consumer.NewConsumer(ctx, wg, conf.KafkaBootstrap, []string{conf.UsersTopic}, conf.GroupId, consumer.Earliest,
-		listener.UsersListenerFactory(ctrl), consumer.HandleError, conf.Debug)
-	if err != nil {
-		log.Logger.Warn("unable to start source, retrying periodically...", attributes.ErrorKey, err)
 	}
 
 	err = api.Start(conf, ctrl)

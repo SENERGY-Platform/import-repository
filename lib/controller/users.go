@@ -17,10 +17,20 @@
 package controller
 
 import (
+	"errors"
+	"net/http"
+
 	permV2 "github.com/SENERGY-Platform/permissions-v2/pkg/client"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
 )
 
-func (this *Controller) DeleteUser(userId string) error {
+// DeleteUser is for administrators only; user-management calls it while deleting a user. Import
+// types the user administers alone are deleted, from all others the user's permissions are
+// removed. Unlike the public delete, this does not ask whether the import types are still used.
+func (this *Controller) DeleteUser(userId string, token jwt.Token) (err error, errCode int) {
+	if !token.IsAdmin() {
+		return errors.New("admin role required"), http.StatusForbidden
+	}
 	// if the count of import types becomes to big, we may want to list for all permissions separately, filtered by the deleted user
 	// eg:
 	// readIds, err, _ := this.permV2Client.ListAccessibleResourceIds(tokenOfUser, ..., permV2.Read)
@@ -31,7 +41,7 @@ func (this *Controller) DeleteUser(userId string) error {
 	// importTypes, err, _ := this.permV2Client.ListResourcesWithAdminPermission(permV2.InternalAdminToken, PermV2Topic, permV2.ListOptions{Ids: ids})
 	importTypes, err, _ := this.permV2Client.ListResourcesWithAdminPermission(permV2.InternalAdminToken, PermV2Topic, permV2.ListOptions{})
 	if err != nil {
-		return err
+		return err, http.StatusInternalServerError
 	}
 	for _, importType := range importTypes {
 		_, ok := importType.UserPermissions[userId]
@@ -55,14 +65,14 @@ func (this *Controller) DeleteUser(userId string) error {
 		if found {
 			_, err, _ = this.permV2Client.SetPermission(permV2.InternalAdminToken, PermV2Topic, importType.Id, importType.ResourcePermissions)
 			if err != nil {
-				return err
+				return err, http.StatusInternalServerError
 			}
 		} else {
-			err, _ = this.deleteImportType(importType.Id)
+			err, errCode = this.deleteImportType(importType.Id)
 			if err != nil {
-				return err
+				return err, errCode
 			}
 		}
 	}
-	return nil
+	return nil, http.StatusNoContent
 }

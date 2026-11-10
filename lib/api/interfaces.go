@@ -32,4 +32,6 @@ type Controller interface {
 	// DeleteImportTypeWithOptions is DeleteImportType with options; DeleteImportType is the
 	// same without force, kept so that the callers of the client interface compile unchanged.
 	DeleteImportTypeWithOptions(id string, token jwt.Token, opts model.DeleteOptions) (err error, errCode int)
+	// DeleteUser is for administrators only and removes the user from all import types.
+	DeleteUser(userId string, token jwt.Token) (err error, errCode int)
 }

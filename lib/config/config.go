@@ -30,8 +30,6 @@ import (
 type Config struct {
 	JwtPubRsa                 string `json:"jwt_pub_rsa"`
 	ServerPort                string `json:"server_port"`
-	KafkaBootstrap            string `json:"kafka_bootstrap"`
-	GroupId                   string `json:"group_id"`
 	DeviceRepoUrl             string `json:"device_repo_url"`
 	MongoUrl                  string `json:"mongo_url"`
 	MongoUser                 string `json:"mongo_user"`
@@ -41,7 +39,6 @@ type Config struct {
 	MongoImportTypeCollection string `json:"mongo_import_type_collection"`
 	Debug                     bool   `json:"debug"`
 	Validate                  bool   `json:"validate"`
-	UsersTopic                string `json:"users_topic"`
 	RepublishStartup          bool   `json:"republish_startup"`
 	PermissionsV2Url          string `json:"permissions_v2_url"`
 	LogHandler                string `json:"log_handler"`

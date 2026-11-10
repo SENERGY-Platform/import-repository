@@ -1,7 +1,6 @@
 {
     "server_port": "8080",
     "jwt_pub_rsa": "",
-    "users_topic": "user",
     "permissions_v2_url": "http://permv2.permissions:8080",
     "device_repo_url": "http://device-repo:8080",
     "smart_service_repo_url": "http://api.smart-service-repository:8080",
@@ -13,8 +12,6 @@
     "mongo_database": "import_repository",
     "mongo_import_type_collection": "importtype",
     "mongo_repl_set": true,
-    "kafka_bootstrap": "localhost:9092",
-    "group_id": "import-repository",
     "validate": false,
     "republish_startup": false,
     "debug": true,

@@ -416,6 +416,38 @@ paths:
       summary: Move import type to another owner
       tags:
       - import-types
+  /users/{id}:
+    delete:
+      description: Administrators only; user-management calls this while deleting
+        a user. Deletes the import types the user administers alone and removes the
+        user's permissions from all others. Does not check whether smart services
+        or import instances still use the import types.
+      parameters:
+      - description: User id
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - Bearer: []
+      summary: Delete user
+      tags:
+      - users
 securityDefinitions:
   Bearer:
     in: header

@@ -7,7 +7,6 @@ Repository to store metadata about imports.
 Simply set these environment variables (default values in brackets):
 *    SERVER_PORT: port to listen on (8080)
 *    JWT_PUB_RSA: public RSA Key to validate JWTs. If not set, JWTs will not be validated ("")
-*    IMPORT_TYPE_TOPIC: kafka Topic to publish import types on (import-types)
 *    PERMISSIONS_URL: URL of the [permission-search](https://github.com/SENERGY-Platform/permission-search) (http://permissionsearch:8080)
 *    MONGO_URL: URL of the mongo db (mongodb://localhost:27017)
 *    MONGO_USER: mongo user name, empty means no auth ("")
@@ -16,8 +15,6 @@ Simply set these environment variables (default values in brackets):
 *    MONGO_DATABASE: mongo database to use (import_repository)
 *    MONGO_IMPORT_TYPE_COLLECTION: mongo collection to use for import types (importtype)
 *    MONGO_REPL_SET: whether the mongo db is running as replication set (true)
-*    ZOOKEEPER_URL: Zookeeper to connect to (localhost:2181)
-*    GROUP_ID: group id to used to subscribe to kafka (import-repository)
 *    VALIDATE: whether to validate import types of HTTP requests (false)
 *    DEBUG: whether to print debug output (true)
 *    SMART_SERVICE_REPO_URL: URL of the smart-service-repository, asked before an import type is deleted (http://api.smart-service-repository:8080). The in-cluster service, no path prefix. Empty is refused at startup
@@ -115,7 +112,16 @@ import type. Both count over all users and list only what the caller may read.
   `import_type_id`, `user_id`, `releases`, `release_instances` and `import_instances`.
 
 The check and the delete are not atomic: an instance created in between is not seen. Deleting a
-user (the user topic) removes the import types only that user administers without this check.
+user (see below) removes the import types only that user administers without this check.
+
+### Delete user
+```
+DELETE /users/:id
+```
+
+For administrators only (realm role `admin` in the token), anyone else gets 403. user-management
+calls it while deleting a user. Deletes the import types the user administers alone and removes the
+user's permissions from all others. Answers 204.
 
 ## Security
 Identity is provided by populating the Header "Authorization" with a JWT (prefixed by "Bearer ").
