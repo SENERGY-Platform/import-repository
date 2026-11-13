@@ -77,6 +77,13 @@ func (this *Controller) CreateImportType(importType model.ImportType, token jwt.
 		},
 	})
 	if err != nil {
+		// Without a permissions entry the stored type is invisible in lists, and a later migration
+		// would give it rights again next to the client's retry.
+		rollbackCtx, _ := getTimeoutContext()
+		if rollbackErr := this.db.RemoveImportType(rollbackCtx, importType.Id); rollbackErr != nil {
+			log.Logger.Error("unable to remove an import type whose permissions could not be set", "import_type_id", importType.Id, attributes.ErrorKey, rollbackErr)
+			err = errors.Join(err, rollbackErr)
+		}
 		return result, err, code
 	}
 	model.SetContentVariableAspectIdsOnRead(&importType)
